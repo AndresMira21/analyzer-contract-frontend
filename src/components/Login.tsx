@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
-import { LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -46,6 +46,7 @@ async function loginApi(email: string, password: string): Promise<LoginResult> {
 }
 
 type AuthMode = 'login' | 'register';
+type FormErrors = { email?: string; password?: string; confirmPassword?: string };
 function LoginForm({
   mode = 'login',
   onModeChange,
@@ -58,11 +59,26 @@ function LoginForm({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  // Estado de carga para deshabilitar el submit y mostrar spinner durante la "API" local
+  const [loading, setLoading] = useState(false);
+  // Estado de errores por campo; se actualiza en submit y se limpia/valida en onChange
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const isRegister = mode === 'register';
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Validaciones previas con actualización de mensajes de error
+    const nextErrors: FormErrors = {};
+    if (!validateEmail(email)) nextErrors.email = 'Ingrese un correo válido.';
+    if (!password || password.length < 6) nextErrors.password = 'La contraseña debe tener al menos 6 caracteres.';
+    if (isRegister && confirmPassword !== password) nextErrors.confirmPassword = 'La confirmación no coincide con la contraseña.';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return; // Evitar enviar si hay errores
+    }
+
+    setLoading(true);
     if (isRegister) {
       // Publicar evento local de intento de registro (sin enviar contraseña)
       eventBus.publish('auth:register_attempt', { name, email });
@@ -81,6 +97,9 @@ function LoginForm({
       } catch (err) {
         eventBus.publish('auth:login_error', { message: (err as Error).message });
         console.error('Login failed:', err);
+      } finally {
+        // Fin de la simulación; reactivamos el botón
+        setLoading(false);
       }
     }
   };
@@ -142,10 +161,21 @@ function LoginForm({
             type="email"
             placeholder="tu@ejemplo.com"
             value={email}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              const v = e.target.value;
+              setEmail(v);
+              // Limpiar/actualizar error de email en tiempo real
+              setErrors((prev) => {
+                const valid = validateEmail(v);
+                return { ...prev, email: valid ? undefined : (prev.email ? 'Ingrese un correo válido.' : undefined) };
+              });
+            }}
             required
-            className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
+            className={`border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white ${errors.email ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
           />
+          {errors.email && (
+            <p className="text-sm text-red-600 mt-1">{errors.email}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -157,10 +187,26 @@ function LoginForm({
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              const v = e.target.value;
+              setPassword(v);
+              // Limpiar/actualizar error de contraseña
+              setErrors((prev) => {
+                const valid = v.length >= 6;
+                const next: FormErrors = { ...prev, password: valid ? undefined : (prev.password ? 'La contraseña debe tener al menos 6 caracteres.' : undefined) };
+                // También revalidar confirmación si estamos registrando
+                if (isRegister) {
+                  next.confirmPassword = (confirmPassword && confirmPassword === v) ? undefined : (prev.confirmPassword ? 'La confirmación no coincide con la contraseña.' : undefined);
+                }
+                return next;
+              });
+            }}
             required
-            className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
+            className={`border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white ${errors.password ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
           />
+          {errors.password && (
+            <p className="text-sm text-red-600 mt-1">{errors.password}</p>
+          )}
         </div>
 
         {isRegister && (
@@ -173,10 +219,21 @@ function LoginForm({
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                const v = e.target.value;
+                setConfirmPassword(v);
+                // Limpiar/actualizar error de confirmación
+                setErrors((prev) => ({
+                  ...prev,
+                  confirmPassword: (v && v === password) ? undefined : (prev.confirmPassword ? 'La confirmación no coincide con la contraseña.' : undefined),
+                }));
+              }}
               required
-              className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
+              className={`border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white ${errors.confirmPassword ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
             />
+            {errors.confirmPassword && (
+              <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>
+            )}
           </div>
         )}
 
@@ -211,9 +268,15 @@ function LoginForm({
         >
           <Button
             type="submit"
-            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-6 gap-2 shadow-lg hover:shadow-blue-900/30 transition-all duration-300"
+            disabled={loading}
+            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-6 gap-2 shadow-lg hover:shadow-blue-900/30 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isRegister ? (
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Procesando...
+              </>
+            ) : isRegister ? (
               <>
                 <UserPlus className="h-5 w-5" />
                 Crear cuenta
