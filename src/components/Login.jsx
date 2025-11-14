@@ -30,7 +30,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="w-full max-w-md bg-white/95 backdrop-blur-xl p-10 rounded-2xl shadow-2xl border border-white/20"
+      className="w-full max-w-md bg-white p-8 md:p-10 rounded-2xl shadow-lg border border-slate-200"
     >
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -38,10 +38,10 @@ function LoginForm({ mode = 'login', onModeChange }) {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="text-center mb-8"
       >
-        <h2 className="text-3xl text-slate-900 mb-2">
+        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 mb-2">
           {isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
         </h2>
-        <p className="text-slate-600">
+        <p className="text-lg md:text-xl text-slate-600">
           {isRegister
             ? 'Únete a LegalConnect y analiza tus contratos'
             : 'Accede a tu cuenta de LegalConnect'}
@@ -57,7 +57,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
       >
         {isRegister && (
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-700">
+            <Label htmlFor="name" className="text-slate-700 font-medium">
               Nombre completo
             </Label>
             <Input
@@ -73,7 +73,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-slate-700">
+          <Label htmlFor="email" className="text-slate-700 font-medium">
             Correo electrónico
           </Label>
           <Input
@@ -88,7 +88,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-slate-700">
+          <Label htmlFor="password" className="text-slate-700 font-medium">
             Contraseña
           </Label>
           <Input
@@ -104,7 +104,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
 
         {isRegister && (
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-slate-700">
+            <Label htmlFor="confirmPassword" className="text-slate-700 font-medium">
               Confirmar contraseña
             </Label>
             <Input
@@ -150,7 +150,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
         >
           <Button
             type="submit"
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 gap-2 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-6 gap-2 shadow-lg hover:shadow-blue-900/30 transition-all duration-300"
           >
             {isRegister ? (
               <>
@@ -200,7 +200,9 @@ export default function Login() {
   const [mode, setMode] = useState('login');
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center px-6">
-      <LoginForm mode={mode} onModeChange={setMode} />
+      <div className="container mx-auto max-w-md">
+        <LoginForm mode={mode} onModeChange={setMode} />
+      </div>
     </div>
   );
 }
