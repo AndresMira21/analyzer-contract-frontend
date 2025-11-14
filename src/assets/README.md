@@ -1,1 +1,0 @@
-This folder stores static assets like images, icons, and fonts.

@@ -1,24 +1,22 @@
-import { AnimatePresence } from 'framer-motion';
-import { Routes, Route, useLocation } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Home from './components/Home';
-import UploadContract from './components/UploadContract';
-import Settings from './components/Settings';
+import { HomePage } from "./components/Home";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import { Routes, Route, useNavigate } from "react-router-dom";
 
 function App() {
-  const location = useLocation();
+  const navigate = useNavigate();
+  const handleLogin = () => navigate("/login");
+  const handleRegister = () => navigate("/register");
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Home />} />
-          <Route path="/upload" element={<UploadContract />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </AnimatePresence>
-    </div>
+    <Routes>
+      <Route
+        path="/"
+        element={<HomePage onLogin={handleLogin} onRegister={handleRegister} />}
+      />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+    </Routes>
   );
 }
 

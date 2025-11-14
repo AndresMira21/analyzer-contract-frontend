@@ -1,1 +1,0 @@
-This folder contains custom React hooks used across the app.
