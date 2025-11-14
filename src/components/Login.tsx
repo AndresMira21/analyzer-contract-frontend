@@ -11,6 +11,7 @@ import { Checkbox } from './ui/checkbox';
 import { LogIn, UserPlus, Shield, Search, CheckCircle, Zap, Home, Sparkles } from 'lucide-react';
 import { ContractIllustration } from './ContractIllustration';
 import { authService } from '../services/AuthService';
+import { useAuth } from '../context/AuthContext';
 import { AnimationFactory } from '../utils/animationFactory';
 
 // EventBus mínimo para emitir eventos de login/registro
@@ -24,11 +25,14 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
+  const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  // Validation state
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
   // Estado de transición del contenedor: controla animación de salida/entrada
   // Comentario: Cuando el usuario alterna entre login/register, activamos un flip
   // del contenedor (no de toda la página) y navegamos al finalizar.
@@ -39,11 +43,41 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Basic validations
+    const nextErrors: { name?: string; email?: string; password?: string; confirmPassword?: string } = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email.trim()) {
+      nextErrors.email = 'El correo es obligatorio';
+    } else if (!emailRegex.test(email)) {
+      nextErrors.email = 'Formato de correo inválido';
+    }
+
+    if (!password.trim()) {
+      nextErrors.password = 'La contraseña es obligatoria';
+    }
+
     if (isRegister) {
-      authService.register(name, email, password);
+      if (!name.trim()) {
+        nextErrors.name = 'El nombre es obligatorio';
+      }
+      if (!confirmPassword.trim()) {
+        nextErrors.confirmPassword = 'Confirma tu contraseña';
+      } else if (password.trim() && confirmPassword !== password) {
+        nextErrors.confirmPassword = 'Las contraseñas no coinciden';
+      }
+    }
+
+    setErrors(nextErrors);
+    const isValid = Object.keys(nextErrors).length === 0;
+    if (!isValid) return;
+    if (isRegister) {
+      // Simulated register via AuthContext
+      register(name, email, password);
       console.log('Register attempt:', { name, email, password });
     } else {
-      authService.login(email, password, rememberMe);
+      // Simulated login via AuthContext
+      login(email, password, rememberMe);
       console.log('Login attempt:', { email, password, rememberMe });
     }
   };
@@ -161,10 +195,16 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
               type="text"
               placeholder="Tu nombre"
               value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setName(e.target.value);
+                setErrors((prev) => ({ ...prev, name: undefined }));
+              }}
               required
               className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
             />
+            {errors.name && (
+              <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+            )}
           </motion.div>
         )}
 
@@ -182,10 +222,16 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
             type="email"
             placeholder="tu@ejemplo.com"
             value={email}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setEmail(e.target.value);
+              setErrors((prev) => ({ ...prev, email: undefined }));
+            }}
             required
             className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
           />
+          {errors.email && (
+            <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+          )}
         </motion.div>
 
         <motion.div
@@ -202,10 +248,16 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setPassword(e.target.value);
+              setErrors((prev) => ({ ...prev, password: undefined }));
+            }}
             required
             className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
           />
+          {errors.password && (
+            <p className="text-red-400 text-sm mt-1">{errors.password}</p>
+          )}
         </motion.div>
 
         {isRegister && (
@@ -223,10 +275,16 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setConfirmPassword(e.target.value);
+                setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+              }}
               required
               className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
             />
+            {errors.confirmPassword && (
+              <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>
+            )}
           </motion.div>
         )}
 
