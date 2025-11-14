@@ -2,11 +2,12 @@ import { HomePage } from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import { Routes, Route, useNavigate } from "react-router-dom";
+import type { JSX } from "react";
 
-function App() {
+function App(): JSX.Element {
   const navigate = useNavigate();
-  const handleLogin = () => navigate("/login");
-  const handleRegister = () => navigate("/register");
+  const handleLogin: () => void = () => navigate("/login");
+  const handleRegister: () => void = () => navigate("/register");
 
   return (
     <Routes>

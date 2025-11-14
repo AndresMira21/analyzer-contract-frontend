@@ -1,12 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect, type FormEvent, type ChangeEvent, type ReactElement } from 'react';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { LogIn, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-function LoginForm({ mode = 'login', onModeChange }) {
+
+class EventBus {
+  private topics: Map<string, Set<(payload: unknown) => void>> = new Map();
+  subscribe(topic: string, handler: (payload: unknown) => void): () => void {
+    const handlers = this.topics.get(topic) ?? new Set<(payload: unknown) => void>();
+    handlers.add(handler);
+    this.topics.set(topic, handlers);
+    return () => handlers.delete(handler);
+  }
+  publish(topic: string, payload: unknown): void {
+    const handlers = this.topics.get(topic);
+    if (!handlers) return;
+    handlers.forEach((h) => {
+      try {
+        h(payload);
+      } catch (e) {
+        console.error('[EventBus]', e);
+      }
+    });
+  }
+}
+
+const eventBus = new EventBus();
+
+type LoginResult = { token: string; user: { email: string } };
+
+function validateEmail(email: string): boolean {
+  return /.+@.+\..+/.test(email);
+}
+
+async function loginApi(email: string, password: string): Promise<LoginResult> {
+  
+  await new Promise((r) => setTimeout(r, 500));
+  if (!validateEmail(email)) throw new Error('Correo inválido');
+  if (!password || password.length < 6) throw new Error('Contraseña demasiado corta');
+  return { token: `fake-${btoa(email)}`, user: { email } };
+}
+
+type AuthMode = 'login' | 'register';
+function LoginForm({
+  mode = 'login',
+  onModeChange,
+}: {
+  mode?: AuthMode;
+  onModeChange?: (mode: AuthMode) => void;
+}): ReactElement {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -15,12 +61,27 @@ function LoginForm({ mode = 'login', onModeChange }) {
 
   const isRegister = mode === 'register';
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isRegister) {
+      // Publicar evento local de intento de registro (sin enviar contraseña)
+      eventBus.publish('auth:register_attempt', { name, email });
       console.log('Register attempt:', { name, email, password });
     } else {
+      // Publicar evento local de intento de login (sin enviar contraseña)
+      eventBus.publish('auth:login_attempt', { email, rememberMe });
       console.log('Login attempt:', { email, password, rememberMe });
+      try {
+        const res = await loginApi(email, password);
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('authToken', res.token);
+        storage.setItem('authUser', JSON.stringify(res.user));
+        eventBus.publish('auth:login_success', { email: res.user.email });
+        console.log('Login success:', res);
+      } catch (err) {
+        eventBus.publish('auth:login_error', { message: (err as Error).message });
+        console.error('Login failed:', err);
+      }
     }
   };
 
@@ -65,7 +126,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
               type="text"
               placeholder="Tu nombre"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               required
               className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
             />
@@ -81,7 +142,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
             type="email"
             placeholder="tu@ejemplo.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             required
             className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
           />
@@ -96,7 +157,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             required
             className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
           />
@@ -112,7 +173,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
               required
               className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
             />
@@ -125,7 +186,7 @@ function LoginForm({ mode = 'login', onModeChange }) {
               <Checkbox
                 id="remember"
                 checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(!!checked)}
+                onCheckedChange={(checked: boolean | 'indeterminate') => setRememberMe(checked === true)}
               />
               <label
                 htmlFor="remember"
@@ -196,8 +257,16 @@ function LoginForm({ mode = 'login', onModeChange }) {
   );
 }
 
-export default function Login() {
-  const [mode, setMode] = useState('login');
+export default function Login(): ReactElement {
+  const [mode, setMode] = useState<AuthMode>('login');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsub = eventBus.subscribe('auth:login_success', () => {
+      navigate('/');
+    });
+    return unsub;
+  }, [navigate]);
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center px-6">
       <div className="container mx-auto max-w-md">
