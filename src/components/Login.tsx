@@ -1,127 +1,105 @@
-import { useState, useEffect, type FormEvent, type ChangeEvent, type ReactElement } from 'react';
+import { useState } from 'react';
+import type React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ProfessionalBackground } from './ProfessionalBackground.jsx';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
-import { LogIn, UserPlus, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { LogIn, UserPlus, Shield, Search, CheckCircle, Zap, Home, Sparkles } from 'lucide-react';
 
-
-class EventBus {
-  private topics: Map<string, Set<(payload: unknown) => void>> = new Map();
-  subscribe(topic: string, handler: (payload: unknown) => void): () => void {
-    const handlers = this.topics.get(topic) ?? new Set<(payload: unknown) => void>();
-    handlers.add(handler);
-    this.topics.set(topic, handlers);
-    return () => handlers.delete(handler);
-  }
-  publish(topic: string, payload: unknown): void {
-    const handlers = this.topics.get(topic);
-    if (!handlers) return;
-    handlers.forEach((h) => {
-      try {
-        h(payload);
-      } catch (e) {
-        console.error('[EventBus]', e);
-      }
-    });
-  }
+interface LoginFormProps {
+  mode?: 'login' | 'register';
+  onModeChange?: (mode: 'login' | 'register') => void;
 }
 
-const eventBus = new EventBus();
-
-type LoginResult = { token: string; user: { email: string } };
-
-function validateEmail(email: string): boolean {
-  return /.+@.+\..+/.test(email);
-}
-
-async function loginApi(email: string, password: string): Promise<LoginResult> {
-  
-  await new Promise((r) => setTimeout(r, 500));
-  if (!validateEmail(email)) throw new Error('Correo inválido');
-  if (!password || password.length < 6) throw new Error('Contraseña demasiado corta');
-  return { token: `fake-${btoa(email)}`, user: { email } };
-}
-
-type AuthMode = 'login' | 'register';
-type FormErrors = { email?: string; password?: string; confirmPassword?: string };
-function LoginForm({
-  mode = 'login',
-  onModeChange,
-}: {
-  mode?: AuthMode;
-  onModeChange?: (mode: AuthMode) => void;
-}): ReactElement {
+export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  // Estado de carga para deshabilitar el submit y mostrar spinner durante la "API" local
-  const [loading, setLoading] = useState(false);
-  // Estado de errores por campo; se actualiza en submit y se limpia/valida en onChange
-  const [errors, setErrors] = useState<FormErrors>({});
 
   const isRegister = mode === 'register';
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Validaciones previas con actualización de mensajes de error
-    const nextErrors: FormErrors = {};
-    if (!validateEmail(email)) nextErrors.email = 'Ingrese un correo válido.';
-    if (!password || password.length < 6) nextErrors.password = 'La contraseña debe tener al menos 6 caracteres.';
-    if (isRegister && confirmPassword !== password) nextErrors.confirmPassword = 'La confirmación no coincide con la contraseña.';
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      return; // Evitar enviar si hay errores
-    }
-
-    setLoading(true);
     if (isRegister) {
-      // Publicar evento local de intento de registro (sin enviar contraseña)
-      eventBus.publish('auth:register_attempt', { name, email });
       console.log('Register attempt:', { name, email, password });
     } else {
-      // Publicar evento local de intento de login (sin enviar contraseña)
-      eventBus.publish('auth:login_attempt', { email, rememberMe });
       console.log('Login attempt:', { email, password, rememberMe });
-      try {
-        const res = await loginApi(email, password);
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('authToken', res.token);
-        storage.setItem('authUser', JSON.stringify(res.user));
-        eventBus.publish('auth:login_success', { email: res.user.email });
-        console.log('Login success:', res);
-      } catch (err) {
-        eventBus.publish('auth:login_error', { message: (err as Error).message });
-        console.error('Login failed:', err);
-      } finally {
-        // Fin de la simulación; reactivamos el botón
-        setLoading(false);
-      }
     }
   };
 
   return (
     <motion.div
       key={mode}
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, x: 50, scale: 0.9 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.9 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="w-full max-w-md bg-white p-8 md:p-10 rounded-2xl shadow-lg border border-slate-200"
+      className="w-full bg-slate-900/90 backdrop-blur-xl p-16 rounded-2xl shadow-2xl border border-slate-700/50 relative overflow-hidden h-full"
     >
+      {/* Efecto de brillo animado en el borde */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl"
+        animate={{
+          background: [
+            'linear-gradient(0deg, transparent, transparent)',
+            'linear-gradient(180deg, rgba(59, 130, 246, 0.1), transparent)',
+            'linear-gradient(360deg, transparent, transparent)',
+          ],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      />
+
+      {/* Partículas flotantes en el fondo del formulario */}
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+          style={{
+            left: `${20 + i * 15}%`,
+            top: `${10 + i * 15}%`,
+          }}
+          animate={{
+            y: [0, -20, 0],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            delay: i * 0.5,
+          }}
+        />
+      ))}
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="text-center mb-8"
+        className="text-center mb-8 relative z-10"
       >
-        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 mb-2">
+        <motion.h2
+          className="text-4xl md:text-5xl mb-3 bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent font-extrabold tracking-tight"
+          animate={{ backgroundPosition: ['0%', '100%', '0%'] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+          style={{ backgroundSize: '200% auto' }}
+        >
           {isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
-        </h2>
-        <p className="text-lg md:text-xl text-slate-600">
+        </motion.h2>
+        <motion.span
+          className="absolute left-1/2 -translate-x-1/2 -top-1 w-48 h-6 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+          animate={{ opacity: [0, 1, 0], x: ['-50%', '50%', '-50%'] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ filter: 'blur(14px)' }}
+        />
+        <p className="text-slate-400 text-lg tracking-wide">
           {isRegister
             ? 'Únete a LegalConnect y analiza tus contratos'
             : 'Accede a tu cuenta de LegalConnect'}
@@ -133,11 +111,16 @@ function LoginForm({
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
         onSubmit={handleSubmit}
-        className="space-y-5"
+        className="space-y-6 relative z-10"
       >
         {isRegister && (
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-700 font-medium">
+          <motion.div
+            className="space-y-2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Label htmlFor="name" className="text-slate-300 text-base font-medium tracking-wide">
               Nombre completo
             </Label>
             <Input
@@ -145,15 +128,20 @@ function LoginForm({
               type="text"
               placeholder="Tu nombre"
               value={name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               required
-              className="border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white"
+              className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
             />
-          </div>
+          </motion.div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-slate-700 font-medium">
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: isRegister ? 0.2 : 0.1 }}
+        >
+          <Label htmlFor="email" className="text-slate-300 text-base font-medium tracking-wide">
             Correo electrónico
           </Label>
           <Input
@@ -161,25 +149,19 @@ function LoginForm({
             type="email"
             placeholder="tu@ejemplo.com"
             value={email}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => {
-              const v = e.target.value;
-              setEmail(v);
-              // Limpiar/actualizar error de email en tiempo real
-              setErrors((prev) => {
-                const valid = validateEmail(v);
-                return { ...prev, email: valid ? undefined : (prev.email ? 'Ingrese un correo válido.' : undefined) };
-              });
-            }}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             required
-            className={`border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white ${errors.email ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
+            className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
           />
-          {errors.email && (
-            <p className="text-sm text-red-600 mt-1">{errors.email}</p>
-          )}
-        </div>
+        </motion.div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-slate-700 font-medium">
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: isRegister ? 0.3 : 0.2 }}
+        >
+          <Label htmlFor="password" className="text-slate-300 text-base font-medium tracking-wide">
             Contraseña
           </Label>
           <Input
@@ -187,31 +169,20 @@ function LoginForm({
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => {
-              const v = e.target.value;
-              setPassword(v);
-              // Limpiar/actualizar error de contraseña
-              setErrors((prev) => {
-                const valid = v.length >= 6;
-                const next: FormErrors = { ...prev, password: valid ? undefined : (prev.password ? 'La contraseña debe tener al menos 6 caracteres.' : undefined) };
-                // También revalidar confirmación si estamos registrando
-                if (isRegister) {
-                  next.confirmPassword = (confirmPassword && confirmPassword === v) ? undefined : (prev.confirmPassword ? 'La confirmación no coincide con la contraseña.' : undefined);
-                }
-                return next;
-              });
-            }}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             required
-            className={`border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white ${errors.password ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
+            className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
           />
-          {errors.password && (
-            <p className="text-sm text-red-600 mt-1">{errors.password}</p>
-          )}
-        </div>
+        </motion.div>
 
         {isRegister && (
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-slate-700 font-medium">
+          <motion.div
+            className="space-y-2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Label htmlFor="confirmPassword" className="text-slate-300 text-base font-medium tracking-wide">
               Confirmar contraseña
             </Label>
             <Input
@@ -219,84 +190,92 @@ function LoginForm({
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                const v = e.target.value;
-                setConfirmPassword(v);
-                // Limpiar/actualizar error de confirmación
-                setErrors((prev) => ({
-                  ...prev,
-                  confirmPassword: (v && v === password) ? undefined : (prev.confirmPassword ? 'La confirmación no coincide con la contraseña.' : undefined),
-                }));
-              }}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
               required
-              className={`border-slate-300 focus:border-blue-600 focus:ring-blue-600 bg-white ${errors.confirmPassword ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
+              className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
             />
-            {errors.confirmPassword && (
-              <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>
-            )}
-          </div>
+          </motion.div>
         )}
 
         {!isRegister && (
-          <div className="flex items-center justify-between">
+          <motion.div
+            className="flex items-center justify-between"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="remember"
                 checked={rememberMe}
-                onCheckedChange={(checked: boolean | 'indeterminate') => setRememberMe(checked === true)}
+                onCheckedChange={(checked: boolean) => setRememberMe(checked)}
               />
               <label
                 htmlFor="remember"
-                className="text-sm text-slate-700 cursor-pointer select-none"
+                className="text-sm text-slate-300 cursor-pointer select-none tracking-wide"
               >
                 Recordarme
               </label>
             </div>
             <button
               type="button"
-              className="text-sm text-blue-700 hover:text-blue-800 hover:underline"
+              className="text-sm text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
               onClick={() => console.log('Forgot password')}
             >
               ¿Olvidaste tu contraseña?
             </button>
-          </div>
+          </motion.div>
         )}
 
         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-6 gap-2 shadow-lg hover:shadow-blue-900/30 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white py-7 text-lg gap-2 shadow-lg shadow-blue-900/50 hover:shadow-xl hover:shadow-blue-800/50 transition-all duration-300 relative overflow-hidden group font-semibold tracking-wide"
           >
-            {loading ? (
+            {/* Efecto de brillo en el botón */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{
+                x: ['-100%', '200%'],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatDelay: 1,
+              }}
+            />
+            {isRegister ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Procesando...
-              </>
-            ) : isRegister ? (
-              <>
-                <UserPlus className="h-5 w-5" />
-                Crear cuenta
+                <UserPlus className="h-6 w-6 relative z-10" />
+                <span className="relative z-10">Crear cuenta</span>
               </>
             ) : (
               <>
-                <LogIn className="h-5 w-5" />
-                Iniciar sesión
+                <LogIn className="h-6 w-6 relative z-10" />
+                <span className="relative z-10">Iniciar sesión</span>
               </>
             )}
           </Button>
         </motion.div>
 
-        <div className="text-center text-sm text-slate-600 pt-4 border-t border-slate-200">
+        <motion.div
+          className="text-center text-base text-slate-400 pt-6 border-t border-slate-700/50 tracking-wide"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
           {isRegister ? (
             <>
               ¿Ya tienes cuenta?{' '}
               <button
                 type="button"
-                className="text-blue-700 hover:text-blue-800 hover:underline"
+                className="text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
                 onClick={() => onModeChange?.('login')}
               >
                 Inicia sesión
@@ -307,33 +286,399 @@ function LoginForm({
               ¿No tienes cuenta?{' '}
               <button
                 type="button"
-                className="text-blue-700 hover:text-blue-800 hover:underline"
+                className="text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
                 onClick={() => onModeChange?.('register')}
               >
                 Regístrate gratis
               </button>
             </>
           )}
-        </div>
+        </motion.div>
       </motion.form>
     </motion.div>
   );
 }
 
-export default function Login(): ReactElement {
-  const [mode, setMode] = useState<AuthMode>('login');
+// Página contenedora por defecto para routing: mantiene el JSX del formulario
+export default function Login() {
   const navigate = useNavigate();
+  const handleModeChange = (mode: 'login' | 'register') => {
+    if (mode === 'register') {
+      // Al hacer clic en "Regístrate gratis" se navega a /register
+      navigate('/register');
+      return;
+    }
+    // Si se solicita volver a login, permanecemos en esta página
+  };
 
-  useEffect(() => {
-    const unsub = eventBus.subscribe('auth:login_success', () => {
-      navigate('/');
-    });
-    return unsub;
-  }, [navigate]);
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center px-6">
-      <div className="container mx-auto max-w-md">
-        <LoginForm mode={mode} onModeChange={setMode} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide">
+      <ProfessionalBackground />
+      
+      {/* Botón para volver a Home */}
+      <motion.button
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        whileHover={{ scale: 1.05, y: -2 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => navigate('/')}
+        className="absolute top-8 left-8 flex items-center gap-2 px-6 py-3 bg-slate-800/80 backdrop-blur-sm hover:bg-slate-700/80 text-white rounded-lg border border-slate-600/50 hover:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-blue-500/20 group z-50 font-medium tracking-wide"
+      >
+        <Home className="h-5 w-5 group-hover:text-blue-400 transition-colors" />
+        <span className="font-medium">Volver al inicio</span>
+      </motion.button>
+      <div className="w-full h-full max-w-[1600px] mx-auto">
+        <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
+          {/* Animación de contrato legal a la izquierda */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="relative flex items-center justify-center p-12 h-full"
+          >
+            {/* Partículas de fondo mejoradas */}
+            {[...Array(15)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  width: Math.random() * 4 + 2,
+                  height: Math.random() * 4 + 2,
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  background: i % 3 === 0 ? '#60a5fa' : i % 3 === 1 ? '#3b82f6' : '#93c5fd',
+                }}
+                animate={{
+                  y: [0, -40, 0],
+                  x: [0, Math.random() * 20 - 10, 0],
+                  opacity: [0.1, 0.6, 0.1],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  duration: 4 + Math.random() * 3,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: 'easeInOut',
+                }}
+              />
+            ))}
+
+            {/* Círculos decorativos grandes */}
+            <motion.div
+              className="absolute -top-20 -left-20 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl"
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+            <motion.div
+              className="absolute -bottom-20 -right-20 w-60 h-60 bg-blue-600/5 rounded-full blur-3xl"
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.2, 0.4, 0.2],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: 1,
+              }}
+            />
+
+            {/* Contenedor principal de la animación */}
+            <div className="relative w-full max-w-md">
+              {/* Texto "AI POWERED ANALYSIS" arriba con más animación */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-center gap-2 mb-8 text-blue-400 relative"
+              >
+                <motion.div
+                  animate={{
+                    rotate: [0, 15, -15, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                >
+                  <Zap className="h-5 w-5" />
+                </motion.div>
+                <span className="text-sm font-bold tracking-widest">AI POWERED ANALYSIS</span>
+                <motion.div
+                  animate={{
+                    opacity: [0, 1, 0],
+                    scale: [0.8, 1.2, 0.8],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                >
+                  <Sparkles className="h-4 w-4 text-blue-300" />
+                </motion.div>
+              </motion.div>
+
+              {/* Botón "CONTRATO LEGAL" con más animación */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                className="mb-6 relative"
+              >
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      '0 10px 30px rgba(37, 99, 235, 0.3)',
+                      '0 10px 40px rgba(37, 99, 235, 0.5)',
+                      '0 10px 30px rgba(37, 99, 235, 0.3)',
+                    ],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg text-center font-bold text-lg relative overflow-hidden"
+                >
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    animate={{
+                      x: ['-100%', '200%'],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: 'linear',
+                    }}
+                  />
+                  <span className="relative z-10">CONTRATO LEGAL</span>
+                </motion.div>
+              </motion.div>
+
+              {/* Líneas decorativas */}
+              <div className="space-y-3 mb-6">
+                {[...Array(3)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ width: 0 }}
+                    animate={{ width: '100%' }}
+                    transition={{ delay: 0.5 + i * 0.1, duration: 0.6 }}
+                    className="h-1 bg-slate-700 rounded-full"
+                  />
+                ))}
+              </div>
+
+              {/* Documento con shield y check */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="relative"
+              >
+                {/* Shield con check a la izquierda con animación de pulso */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 1, type: 'spring', stiffness: 200 }}
+                  className="absolute -left-12 top-8 bg-blue-600 rounded-full p-3 shadow-lg shadow-blue-600/50"
+                >
+                  <motion.div
+                    animate={{
+                      rotate: [0, -10, 10, 0],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
+                  >
+                    <Shield className="h-8 w-8 text-white" />
+                  </motion.div>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 1.3 }}
+                    className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1"
+                  >
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </motion.div>
+                  </motion.div>
+                  {/* Anillo de pulso */}
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-2 border-blue-400"
+                    animate={{
+                      scale: [1, 1.5, 1],
+                      opacity: [0.5, 0, 0.5],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'easeOut',
+                    }}
+                  />
+                </motion.div>
+
+                {/* Documento principal */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.9 }}
+                  className="bg-white rounded-lg p-8 shadow-2xl relative overflow-hidden"
+                >
+                  {/* Líneas del documento */}
+                  <div className="space-y-3">
+                    {[...Array(6)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ width: 0 }}
+                        animate={{ width: i === 2 ? '60%' : '100%' }}
+                        transition={{ delay: 1.2 + i * 0.1, duration: 0.5 }}
+                        className={`h-2 rounded-full ${
+                          i === 2 ? 'bg-blue-400' : 'bg-slate-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Puntos decorativos */}
+                  <div className="absolute bottom-4 left-8 flex gap-2">
+                    {[...Array(3)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 1.5 + i * 0.1 }}
+                        className="w-2 h-2 bg-blue-400 rounded-full"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Lupa animada con movimiento */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1,
+                      y: [0, -5, 0],
+                      rotate: [0, 5, -5, 0],
+                    }}
+                    transition={{ 
+                      delay: 1.7, 
+                      type: 'spring',
+                      y: {
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      },
+                      rotate: {
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      },
+                    }}
+                    className="absolute bottom-6 left-1/3"
+                  >
+                    <Search className="h-12 w-12 text-blue-600" strokeWidth={2.5} />
+                  </motion.div>
+
+                  {/* Check circle a la derecha con pulso */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.9, type: 'spring' }}
+                    className="absolute bottom-6 right-8 bg-blue-600 rounded-full p-2 relative"
+                  >
+                    <motion.div
+                      animate={{
+                        rotate: [0, 360],
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: 'linear',
+                      }}
+                    >
+                      <CheckCircle className="h-8 w-8 text-white" />
+                    </motion.div>
+                    {/* Anillo de pulso */}
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-blue-400"
+                      animate={{
+                        scale: [1, 1.4, 1],
+                        opacity: [0.6, 0, 0.6],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeOut',
+                        delay: 0.5,
+                      }}
+                    />
+                  </motion.div>
+                </motion.div>
+
+                {/* Icono de ojo flotante arriba a la derecha con animación */}
+                <motion.div
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ 
+                    opacity: 1, 
+                    x: 0,
+                    y: [0, -8, 0],
+                  }}
+                  transition={{ 
+                    delay: 1.1,
+                    y: {
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    },
+                  }}
+                  className="absolute -top-4 -right-8 bg-slate-800 border-2 border-blue-500 rounded-full p-2"
+                >
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <motion.div
+                      className="w-2 h-2 bg-blue-400 rounded-full"
+                      animate={{
+                        scale: [1, 1.3, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Formulario más grande a la derecha, con transición de entrada */}
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+            <LoginForm mode="login" onModeChange={handleModeChange} />
+          </motion.div>
+        </div>
       </div>
     </div>
   );

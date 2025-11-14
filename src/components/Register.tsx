@@ -1,54 +1,206 @@
-import React from "react";
-import type { ReactElement, MouseEvent } from "react";
-import { motion } from "motion/react";
-import { Button } from "../components/ui/button";
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { ProfessionalBackground } from './ProfessionalBackground.jsx';
+import { LoginForm } from './Login';
+import { Home, Shield, Search, CheckCircle, Zap, Sparkles } from 'lucide-react';
 
-// EventBus local mínimo (Observer) y tipado básico
-class EventBus {
-  private topics: Map<string, Set<(payload: unknown) => void>> = new Map();
-  subscribe(topic: string, handler: (payload: unknown) => void): () => void {
-    const handlers = this.topics.get(topic) ?? new Set<(payload: unknown) => void>();
-    handlers.add(handler);
-    this.topics.set(topic, handlers);
-    return () => handlers.delete(handler);
-  }
-  publish(topic: string, payload: unknown): void {
-    const handlers = this.topics.get(topic);
-    if (!handlers) return;
-    handlers.forEach((h) => {
-      try { h(payload); } catch (e) { console.error('[EventBus]', e); }
-    });
-  }
-}
+export default function Register() {
+  const navigate = useNavigate();
+  const handleModeChange = (mode: 'login' | 'register') => {
+    if (mode === 'login') {
+      navigate('/login');
+      return;
+    }
+  };
 
-const eventBus = new EventBus();
-
-export default function Register(): ReactElement {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide">
+      <ProfessionalBackground />
+
+      {/* Botón para volver a Home */}
+      <motion.button
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 text-white"
+        transition={{ delay: 0.5 }}
+        whileHover={{ scale: 1.05, y: -2 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => navigate('/')}
+        className="absolute top-8 left-8 flex items-center gap-2 px-6 py-3 bg-slate-800/80 backdrop-blur-sm hover:bg-slate-700/80 text-white rounded-lg border border-slate-600/50 hover:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-blue-500/20 group z-50 font-medium tracking-wide"
       >
-        <h1 className="text-2xl mb-4">Crear cuenta</h1>
-        <div className="space-y-4">
-          <input className="w-full h-10 px-3 rounded-md bg-slate-800/70 border border-slate-700 text-white" placeholder="Nombre" />
-          <input className="w-full h-10 px-3 rounded-md bg-slate-800/70 border border-slate-700 text-white" placeholder="Correo electrónico" />
-          <input className="w-full h-10 px-3 rounded-md bg-slate-800/70 border border-slate-700 text-white" placeholder="Contraseña" type="password" />
-          <Button
-            className="w-full bg-blue-700 hover:bg-blue-600"
-            onClick={(e: MouseEvent<HTMLButtonElement>) => {
-              // Publicar evento local de intento de registro
-              eventBus.publish('auth:register_click', { ts: Date.now() });
-              console.log('Registrarme click');
-            }}
+        <Home className="h-5 w-5 group-hover:text-blue-400 transition-colors" />
+        <span className="font-medium">Volver al inicio</span>
+      </motion.button>
+
+      <div className="w-full h-full max-w-[1600px] mx-auto">
+        <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
+          {/* Animación de contrato legal a la izquierda: igual que en Login */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="relative flex items-center justify-center p-12 h-full"
           >
-            Registrarme
-          </Button>
+            {[...Array(15)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  width: Math.random() * 4 + 2,
+                  height: Math.random() * 4 + 2,
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  background: i % 3 === 0 ? '#60a5fa' : i % 3 === 1 ? '#3b82f6' : '#93c5fd',
+                }}
+                animate={{
+                  y: [0, -40, 0],
+                  x: [0, Math.random() * 20 - 10, 0],
+                  opacity: [0.1, 0.6, 0.1],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  duration: 4 + Math.random() * 3,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: 'easeInOut',
+                }}
+              />
+            ))}
+
+            <motion.div
+              className="absolute -top-20 -left-20 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl"
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+            <motion.div
+              className="absolute -bottom-20 -right-20 w-60 h-60 bg-blue-600/5 rounded-full blur-3xl"
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.2, 0.4, 0.2],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: 1,
+              }}
+            />
+
+            <div className="relative w-full max-w-md">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-center gap-2 mb-8 text-blue-400 relative"
+              >
+                <motion.div
+                  animate={{ rotate: [0, 15, -15, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Zap className="h-5 w-5" />
+                </motion.div>
+                <span className="text-sm font-bold tracking-widest">AI POWERED ANALYSIS</span>
+                <motion.div
+                  animate={{ opacity: [0, 1, 0], scale: [0.8, 1.2, 0.8] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Sparkles className="h-4 w-4 text-blue-300" />
+                </motion.div>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="mb-6 relative">
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      '0 10px 30px rgba(37, 99, 235, 0.3)',
+                      '0 10px 40px rgba(37, 99, 235, 0.5)',
+                      '0 10px 30px rgba(37, 99, 235, 0.3)',
+                    ],
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg text-center font-bold text-lg relative overflow-hidden"
+                >
+                  <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" animate={{ x: ['-100%', '200%'] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }} />
+                  <span className="relative z-10">CONTRATO LEGAL</span>
+                </motion.div>
+              </motion.div>
+
+              <div className="space-y-3 mb-6">
+                {[...Array(3)].map((_, i) => (
+                  <motion.div key={i} initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ delay: 0.5 + i * 0.1, duration: 0.6 }} className="h-1 bg-slate-700 rounded-full" />
+                ))}
+              </div>
+
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }} className="relative">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1, type: 'spring', stiffness: 200 }} className="absolute -left-12 top-8 bg-blue-600 rounded-full p-3 shadow-lg shadow-blue-600/50">
+                  <motion.div animate={{ rotate: [0, -10, 10, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
+                    <Shield className="h-8 w-8 text-white" />
+                  </motion.div>
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.3 }} className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1">
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </motion.div>
+                  </motion.div>
+                  <motion.div className="absolute inset-0 rounded-full border-2 border-blue-400" animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }} />
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.9 }} className="bg-white rounded-lg p-8 shadow-2xl relative overflow-hidden">
+                  <div className="space-y-3">
+                    {[...Array(6)].map((_, i) => (
+                      <motion.div key={i} initial={{ width: 0 }} animate={{ width: i === 2 ? '60%' : '100%' }} transition={{ delay: 1.2 + i * 0.1, duration: 0.5 }} className={`h-2 rounded-full ${i === 2 ? 'bg-blue-400' : 'bg-slate-300'}`} />
+                    ))}
+                  </div>
+
+                  <div className="absolute bottom-4 left-8 flex gap-2">
+                    {[...Array(3)].map((_, i) => (
+                      <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.5 + i * 0.1 }} className="w-2 h-2 bg-blue-400 rounded-full" />
+                    ))}
+                  </div>
+
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1, y: [0, -5, 0], rotate: [0, 5, -5, 0] }}
+                    transition={{
+                      delay: 1.7,
+                      type: 'spring',
+                      y: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+                      rotate: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+                    }}
+                    className="absolute bottom-6 left-1/3"
+                  >
+                    <Search className="h-12 w-12 text-blue-600" strokeWidth={2.5} />
+                  </motion.div>
+
+                  <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.9, type: 'spring' }} className="absolute bottom-6 right-8 bg-blue-600 rounded-full p-2 relative">
+                    <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}>
+                      <CheckCircle className="h-8 w-8 text-white" />
+                    </motion.div>
+                    <motion.div className="absolute inset-0 rounded-full border-2 border-blue-400" animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 0.5 }} />
+                  </motion.div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0, y: [0, -8, 0] }} transition={{ delay: 1.1, y: { duration: 3, repeat: Infinity, ease: 'easeInOut' } }} className="absolute -top-4 -right-8 bg-slate-800 border-2 border-blue-500 rounded-full p-2">
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <motion.div className="w-2 h-2 bg-blue-400 rounded-full" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} />
+                  </div>
+                </motion.div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Formulario a la derecha con transición de entrada distinta */}
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+            <LoginForm mode="register" onModeChange={handleModeChange} />
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
