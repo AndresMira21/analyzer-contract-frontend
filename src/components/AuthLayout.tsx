@@ -1,26 +1,17 @@
-import { useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import type { JSX } from 'react';
 import { motion } from 'motion/react';
 import { ProfessionalBackground } from './ProfessionalBackground.jsx';
-import { LoginForm } from './Login';
-import { Home } from 'lucide-react';
 import { ContractIllustration } from './ContractIllustration';
-import { AnimationFactory } from '../utils/animationFactory';
+import { Home } from 'lucide-react';
 
-export default function Register() {
+export function AuthLayout(): JSX.Element {
   const navigate = useNavigate();
-  const handleModeChange = (mode: 'login' | 'register') => {
-    if (mode === 'login') {
-      navigate('/login');
-      return;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide">
       <ProfessionalBackground />
 
-      {/* Botón para volver a Home */}
+      {/* Botón para volver a Home (persistente entre Login/Register) */}
       <motion.button
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -36,32 +27,17 @@ export default function Register() {
 
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
-          {/* Ilustración compartida idéntica a Login */}
+          {/* Ilustración compartida y persistente */}
           <ContractIllustration />
 
-          {/* Formulario a la derecha con transición de entrada distinta */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-            <LoginForm mode="register" onModeChange={handleModeChange} />
-          </motion.div>
+          {/* Contenido del formulario como hijo anidado (Outlet) */}
+          <div className="w-full">
+            <Outlet />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Contenido para usarse dentro del AuthLayout (sin volver a montar la ilustración)
-export function RegisterContent(): JSX.Element {
-  const navigate = useNavigate();
-  const handleModeChange = (mode: 'login' | 'register') => {
-    if (mode === 'login') {
-      navigate('/login');
-      return;
-    }
-  };
-  const { initial, animate, transition } = AnimationFactory.getPanelSlide('register');
-  return (
-    <motion.div initial={initial} animate={animate} transition={transition}>
-      <LoginForm mode="register" onModeChange={handleModeChange} />
-    </motion.div>
-  );
-}
+export default AuthLayout;

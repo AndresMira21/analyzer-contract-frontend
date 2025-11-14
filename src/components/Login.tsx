@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type React from 'react';
+import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProfessionalBackground } from './ProfessionalBackground.jsx';
 import { motion } from 'motion/react';
@@ -8,6 +9,14 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { LogIn, UserPlus, Shield, Search, CheckCircle, Zap, Home, Sparkles } from 'lucide-react';
+import { ContractIllustration } from './ContractIllustration';
+import { authService } from '../services/AuthService';
+import { AnimationFactory } from '../utils/animationFactory';
+
+// EventBus mínimo para emitir eventos de login/registro
+// Comentario: Este bus permite escuchar y publicar eventos (por ejemplo, intentos de registro)
+// sin acoplar el formulario a una implementación concreta. Se mantiene simple y tipado.
+// EventBus centralizado ahora en utils/eventBus con patrón Singleton
 
 interface LoginFormProps {
   mode?: 'login' | 'register';
@@ -20,26 +29,50 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  // Estado de transición del contenedor: controla animación de salida/entrada
+  // Comentario: Cuando el usuario alterna entre login/register, activamos un flip
+  // del contenedor (no de toda la página) y navegamos al finalizar.
+  const [isExiting, setIsExiting] = useState(false);
+  const [flipDir, setFlipDir] = useState<1 | -1>(1);
 
   const isRegister = mode === 'register';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isRegister) {
+      authService.register(name, email, password);
       console.log('Register attempt:', { name, email, password });
     } else {
+      authService.login(email, password, rememberMe);
       console.log('Login attempt:', { email, password, rememberMe });
     }
+  };
+
+  // Maneja la transición visual y la navegación entre modos.
+  // Comentario: ajusta la dirección del flip (register => 90°, login => -90°)
+  // y navega tras completar la animación.
+  const triggerModeChange = (nextMode: 'login' | 'register') => {
+    setFlipDir(nextMode === 'register' ? 1 : -1);
+    setIsExiting(true);
+    // Duración coherente con transition del contenedor
+    window.setTimeout(() => {
+      onModeChange?.(nextMode);
+      setIsExiting(false);
+    }, 450);
   };
 
   return (
     <motion.div
       key={mode}
-      initial={{ opacity: 0, x: 50, scale: 0.9 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -50, scale: 0.9 }}
-      transition={{ duration: 0.7, ease: 'easeOut' }}
+      initial={{ opacity: 0, rotateY: -8, scale: 0.98, transformPerspective: 1000 }}
+      animate={
+        isExiting
+          ? { opacity: 0, rotateY: 90 * flipDir, scale: 0.98, transformPerspective: 1000 }
+          : { opacity: 1, rotateY: 0, scale: 1, transformPerspective: 1000 }
+      }
+      transition={{ duration: 0.45, ease: 'easeInOut' }}
       className="w-full bg-slate-900/90 backdrop-blur-xl p-16 rounded-2xl shadow-2xl border border-slate-700/50 relative overflow-hidden h-full"
+      style={{ transformStyle: 'preserve-3d' }}
     >
       {/* Efecto de brillo animado en el borde */}
       <motion.div
@@ -276,7 +309,7 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
               <button
                 type="button"
                 className="text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
-                onClick={() => onModeChange?.('login')}
+                onClick={() => triggerModeChange('login')}
               >
                 Inicia sesión
               </button>
@@ -287,7 +320,7 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
               <button
                 type="button"
                 className="text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
-                onClick={() => onModeChange?.('register')}
+                onClick={() => triggerModeChange('register')}
               >
                 Regístrate gratis
               </button>
@@ -330,349 +363,8 @@ export default function Login() {
       </motion.button>
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
-          {/* Animación de contrato legal a la izquierda */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="relative flex items-center justify-center p-12 h-full"
-          >
-            {/* Partículas de fondo mejoradas */}
-            {[...Array(15)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  width: Math.random() * 4 + 2,
-                  height: Math.random() * 4 + 2,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  background: i % 3 === 0 ? '#60a5fa' : i % 3 === 1 ? '#3b82f6' : '#93c5fd',
-                }}
-                animate={{
-                  y: [0, -40, 0],
-                  x: [0, Math.random() * 20 - 10, 0],
-                  opacity: [0.1, 0.6, 0.1],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 4 + Math.random() * 3,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                  ease: 'easeInOut',
-                }}
-              />
-            ))}
-
-            {/* Círculos decorativos grandes */}
-            <motion.div
-              className="absolute -top-20 -left-20 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3],
-              }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-            <motion.div
-              className="absolute -bottom-20 -right-20 w-60 h-60 bg-blue-600/5 rounded-full blur-3xl"
-              animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0.2, 0.4, 0.2],
-              }}
-              transition={{
-                duration: 6,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: 1,
-              }}
-            />
-
-            {/* Contenedor principal de la animación */}
-            <div className="relative w-full max-w-md">
-              {/* Texto "AI POWERED ANALYSIS" arriba con más animación */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex items-center gap-2 mb-8 text-blue-400 relative"
-              >
-                <motion.div
-                  animate={{
-                    rotate: [0, 15, -15, 0],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                >
-                  <Zap className="h-5 w-5" />
-                </motion.div>
-                <span className="text-sm font-bold tracking-widest">AI POWERED ANALYSIS</span>
-                <motion.div
-                  animate={{
-                    opacity: [0, 1, 0],
-                    scale: [0.8, 1.2, 0.8],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                >
-                  <Sparkles className="h-4 w-4 text-blue-300" />
-                </motion.div>
-              </motion.div>
-
-              {/* Botón "CONTRATO LEGAL" con más animación */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
-                className="mb-6 relative"
-              >
-                <motion.div
-                  animate={{
-                    boxShadow: [
-                      '0 10px 30px rgba(37, 99, 235, 0.3)',
-                      '0 10px 40px rgba(37, 99, 235, 0.5)',
-                      '0 10px 30px rgba(37, 99, 235, 0.3)',
-                    ],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-lg text-center font-bold text-lg relative overflow-hidden"
-                >
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                    animate={{
-                      x: ['-100%', '200%'],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'linear',
-                    }}
-                  />
-                  <span className="relative z-10">CONTRATO LEGAL</span>
-                </motion.div>
-              </motion.div>
-
-              {/* Líneas decorativas */}
-              <div className="space-y-3 mb-6">
-                {[...Array(3)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    transition={{ delay: 0.5 + i * 0.1, duration: 0.6 }}
-                    className="h-1 bg-slate-700 rounded-full"
-                  />
-                ))}
-              </div>
-
-              {/* Documento con shield y check */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="relative"
-              >
-                {/* Shield con check a la izquierda con animación de pulso */}
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 1, type: 'spring', stiffness: 200 }}
-                  className="absolute -left-12 top-8 bg-blue-600 rounded-full p-3 shadow-lg shadow-blue-600/50"
-                >
-                  <motion.div
-                    animate={{
-                      rotate: [0, -10, 10, 0],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
-                  >
-                    <Shield className="h-8 w-8 text-white" />
-                  </motion.div>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 1.3 }}
-                    className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1"
-                  >
-                    <motion.div
-                      animate={{
-                        scale: [1, 1.2, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      }}
-                    >
-                      <CheckCircle className="h-4 w-4 text-white" />
-                    </motion.div>
-                  </motion.div>
-                  {/* Anillo de pulso */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-blue-400"
-                    animate={{
-                      scale: [1, 1.5, 1],
-                      opacity: [0.5, 0, 0.5],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: 'easeOut',
-                    }}
-                  />
-                </motion.div>
-
-                {/* Documento principal */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.9 }}
-                  className="bg-white rounded-lg p-8 shadow-2xl relative overflow-hidden"
-                >
-                  {/* Líneas del documento */}
-                  <div className="space-y-3">
-                    {[...Array(6)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ width: 0 }}
-                        animate={{ width: i === 2 ? '60%' : '100%' }}
-                        transition={{ delay: 1.2 + i * 0.1, duration: 0.5 }}
-                        className={`h-2 rounded-full ${
-                          i === 2 ? 'bg-blue-400' : 'bg-slate-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Puntos decorativos */}
-                  <div className="absolute bottom-4 left-8 flex gap-2">
-                    {[...Array(3)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 1.5 + i * 0.1 }}
-                        className="w-2 h-2 bg-blue-400 rounded-full"
-                      />
-                    ))}
-                  </div>
-
-                  {/* Lupa animada con movimiento */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ 
-                      opacity: 1, 
-                      scale: 1,
-                      y: [0, -5, 0],
-                      rotate: [0, 5, -5, 0],
-                    }}
-                    transition={{ 
-                      delay: 1.7, 
-                      type: 'spring',
-                      y: {
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      },
-                      rotate: {
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      },
-                    }}
-                    className="absolute bottom-6 left-1/3"
-                  >
-                    <Search className="h-12 w-12 text-blue-600" strokeWidth={2.5} />
-                  </motion.div>
-
-                  {/* Check circle a la derecha con pulso */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.9, type: 'spring' }}
-                    className="absolute bottom-6 right-8 bg-blue-600 rounded-full p-2 relative"
-                  >
-                    <motion.div
-                      animate={{
-                        rotate: [0, 360],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity,
-                        ease: 'linear',
-                      }}
-                    >
-                      <CheckCircle className="h-8 w-8 text-white" />
-                    </motion.div>
-                    {/* Anillo de pulso */}
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-blue-400"
-                      animate={{
-                        scale: [1, 1.4, 1],
-                        opacity: [0.6, 0, 0.6],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: 'easeOut',
-                        delay: 0.5,
-                      }}
-                    />
-                  </motion.div>
-                </motion.div>
-
-                {/* Icono de ojo flotante arriba a la derecha con animación */}
-                <motion.div
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ 
-                    opacity: 1, 
-                    x: 0,
-                    y: [0, -8, 0],
-                  }}
-                  transition={{ 
-                    delay: 1.1,
-                    y: {
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    },
-                  }}
-                  className="absolute -top-4 -right-8 bg-slate-800 border-2 border-blue-500 rounded-full p-2"
-                >
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <motion.div
-                      className="w-2 h-2 bg-blue-400 rounded-full"
-                      animate={{
-                        scale: [1, 1.3, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      }}
-                    />
-                  </div>
-                </motion.div>
-              </motion.div>
-            </div>
-          </motion.div>
+          {/* Ilustración compartida para consistencia entre Login y Register */}
+          <ContractIllustration />
 
           {/* Formulario más grande a la derecha, con transición de entrada */}
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
@@ -681,5 +373,22 @@ export default function Login() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Contenido para usarse dentro del AuthLayout (sin volver a montar la ilustración)
+export function LoginContent(): JSX.Element {
+  const navigate = useNavigate();
+  const handleModeChange = (mode: 'login' | 'register') => {
+    if (mode === 'register') {
+      navigate('/register');
+      return;
+    }
+  };
+  const { initial, animate, transition } = AnimationFactory.getPanelSlide('login');
+  return (
+    <motion.div initial={initial} animate={animate} transition={transition}>
+      <LoginForm mode="login" onModeChange={handleModeChange} />
+    </motion.div>
   );
 }

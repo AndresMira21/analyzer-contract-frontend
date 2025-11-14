@@ -1,6 +1,7 @@
 import { HomePage } from "./components/Home";
-import Login from "./components/Login";
-import Register from "./components/Register";
+import { LoginContent } from "./components/Login";
+import { RegisterContent } from "./components/Register";
+import { AuthLayout } from "./components/AuthLayout";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import type { JSX } from "react";
 
@@ -15,8 +16,11 @@ function App(): JSX.Element {
         path="/"
         element={<HomePage onLogin={handleLogin} onRegister={handleRegister} />}
       />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      {/* Layout padre sin path: mantiene ilustración y fondo persistentes */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<LoginContent />} />
+        <Route path="/register" element={<RegisterContent />} />
+      </Route>
     </Routes>
   );
 }
