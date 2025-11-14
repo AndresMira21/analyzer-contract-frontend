@@ -14,11 +14,6 @@ import { authService } from '../services/AuthService';
 import { useAuth } from '../context/AuthContext';
 import { AnimationFactory } from '../utils/animationFactory';
 
-// EventBus mínimo para emitir eventos de login/registro
-// Comentario: Este bus permite escuchar y publicar eventos (por ejemplo, intentos de registro)
-// sin acoplar el formulario a una implementación concreta. Se mantiene simple y tipado.
-// EventBus centralizado ahora en utils/eventBus con patrón Singleton
-
 interface LoginFormProps {
   mode?: 'login' | 'register';
   onModeChange?: (mode: 'login' | 'register') => void;
@@ -33,9 +28,7 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
   const [rememberMe, setRememberMe] = useState(false);
   // Validation state
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
-  // Estado de transición del contenedor: controla animación de salida/entrada
-  // Comentario: Cuando el usuario alterna entre login/register, activamos un flip
-  // del contenedor (no de toda la página) y navegamos al finalizar.
+  
   const [isExiting, setIsExiting] = useState(false);
   const [flipDir, setFlipDir] = useState<1 | -1>(1);
 
