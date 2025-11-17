@@ -44,7 +44,7 @@ function App(): JSX.Element | null {
     setScreen("home");
   }, [location.pathname]);
 
-  if (location.pathname.startsWith('/dashboard')) {
+  if (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/contracts')) {
     return null;
   }
 

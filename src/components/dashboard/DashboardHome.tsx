@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -6,12 +7,18 @@ import Lottie from 'lottie-react';
 import { ChevronRight } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import UploadContractModal from '../UploadContractModal';
+import AnalyzeTextModal from '../AnalyzeTextModal';
 import robotAnimation from '../../assets/animations/Robot assistant  Online manager.json';
 
 export default function DashboardHome(): JSX.Element {
   const { user } = useAuth();
   const name = user?.name ?? 'Usuario';
+  const navigate = useNavigate();
+  const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
+  const [isAnalyzeOpen, setIsAnalyzeOpen] = useState<boolean>(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; type: string; size: number; contractName?: string }[]>([]);
 
   const stats = [
     { icon: FileText, title: 'Contratos analizados', value: 124 },
@@ -50,12 +57,12 @@ export default function DashboardHome(): JSX.Element {
               <input placeholder="Selecciona tu contrato..." className="w-full bg-transparent text-slate-200 placeholder-slate-400 outline-none text-3xl" />
             </div>
             <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.98 }}>
-              <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(14,165,233,0.35) 0%, rgba(34,211,238,0.65) 50%, rgba(14,165,233,0.35) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, x: [ -24, 24 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
-              <Button className="text-white h-[84px] px-10 text-3xl" style={{ background: 'linear-gradient(90deg, #0EA5E9 0%, #22D3EE 100%)', boxShadow: '0 14px 34px rgba(34,211,238,0.3)', filter: 'brightness(1.06)' }}>Subir contrato</Button>
+            <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(14,165,233,0.35) 0%, rgba(34,211,238,0.65) 50%, rgba(14,165,233,0.35) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, x: [ -24, 24 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
+              <Button className="text-white h-[84px] px-10 text-3xl" style={{ background: 'linear-gradient(90deg, #0EA5E9 0%, #22D3EE 100%)', boxShadow: '0 14px 34px rgba(34,211,238,0.3)', filter: 'brightness(1.06)' }} onClick={() => setIsUploadOpen(true)}>Subir contrato</Button>
             </motion.div>
             <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.98 }}>
               <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(54,90,223,0.22) 0%, rgba(79,140,255,0.44) 50%, rgba(54,90,223,0.22) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.75, x: [ -22, 22 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
-              <Button variant="outline" className="text-white h-[84px] px-10 text-3xl" style={{ borderColor: '#4F8CFF', boxShadow: '0 12px 30px rgba(79,140,255,0.22)', background: 'linear-gradient(90deg, rgba(20,30,60,0.35) 0%, rgba(20,30,60,0.25) 100%)' }}>Crear análisis</Button>
+              <Button variant="outline" className="text-white h-[84px] px-10 text-3xl" style={{ borderColor: '#4F8CFF', boxShadow: '0 12px 30px rgba(79,140,255,0.22)', background: 'linear-gradient(90deg, rgba(20,30,60,0.35) 0%, rgba(20,30,60,0.25) 100%)' }} onClick={() => setIsAnalyzeOpen(true)}>Analizar contrato</Button>
             </motion.div>
             <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} whileHover={{ y: -2, scale: 1.06 }} whileTap={{ scale: 0.98 }}>
               <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'radial-gradient(120px 120px at 50% 50%, rgba(79,140,255,0.5), rgba(79,140,255,0))' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, scale: 1.1 }} transition={{ duration: 0.8 }} />
@@ -115,7 +122,31 @@ export default function DashboardHome(): JSX.Element {
         </Card>
       </motion.div>
 
-      
+      <UploadContractModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUploaded={(file) => { setUploadedFiles(prev => [...prev, file]); setIsAnalyzeOpen(true); }} />
+      <AnalyzeTextModal
+        isOpen={isAnalyzeOpen}
+        onClose={() => setIsAnalyzeOpen(false)}
+        files={uploadedFiles}
+        onAnalyzed={(file) => {
+          const analyzed = {
+            id: `AC-${Date.now()}`,
+            name: file.contractName || file.name,
+            uploadedAt: new Date().toISOString().slice(0, 10),
+            status: 'En revisión' as const,
+            riskScore: Math.min(100, Math.max(8, Math.round(file.size / 1024))),
+            clauses: ['Alcance de servicios', 'Confidencialidad', 'Propiedad intelectual'],
+            risks: ['Ambigüedad en penalizaciones', 'Falta de SLA explícito'],
+            recommendations: ['Definir métricas de desempeño', 'Agregar cláusula de resolución de disputas'],
+            summary: 'Análisis inicial automático basado en el documento subido.'
+          };
+          navigate('/dashboard/contracts', { state: { analyzedContract: analyzed } });
+          setUploadedFiles(prev => {
+            const next = prev.filter(f => f !== file);
+            if (next.length === 0) setIsAnalyzeOpen(false);
+            return next;
+          });
+        }}
+      />
     </div>
   );
 }

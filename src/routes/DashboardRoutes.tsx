@@ -6,6 +6,7 @@ import ContractsPage from '../components/dashboard/ContractsPage';
 import UploadContractPage from '../components/dashboard/UploadContractPage';
 import AIAnalysisPage from '../components/dashboard/AIAnalysisPage';
 import SettingsPage from '../components/dashboard/SettingsPage';
+import ContractDetails from '../components/ContractDetails';
 
 export default function DashboardRoutes(): JSX.Element {
   return (
@@ -17,6 +18,7 @@ export default function DashboardRoutes(): JSX.Element {
         <Route path="ai" element={<AIAnalysisPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
+      <Route path="/contracts/:id" element={<ContractDetails />} />
     </Routes>
   );
 }
