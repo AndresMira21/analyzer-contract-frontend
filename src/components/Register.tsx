@@ -20,7 +20,6 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide">
       <ProfessionalBackground />
 
-      {/* Botón para volver a Home */}
       <motion.button
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -36,12 +35,10 @@ export default function Register() {
 
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
-          {/* Ilustración compartida idéntica a Login */}
           <ContractIllustration />
 
-          {/* Formulario a la derecha con transición de entrada distinta */}
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-            <LoginForm mode="register" onModeChange={handleModeChange} />
+            <LoginForm mode="register" onModeChange={handleModeChange} onRegisterSuccess={() => navigate('/login')} />
           </motion.div>
         </div>
       </div>
@@ -49,7 +46,6 @@ export default function Register() {
   );
 }
 
-// Contenido para usarse dentro del AuthLayout (sin volver a montar la ilustración)
 export function RegisterContent(): JSX.Element {
   const navigate = useNavigate();
   const handleModeChange = (mode: 'login' | 'register') => {

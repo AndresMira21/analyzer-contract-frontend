@@ -45,3 +45,5 @@ export function Dashboard(): JSX.Element {
     </div>
   );
 }
+
+export default Dashboard;

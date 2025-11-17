@@ -2,7 +2,6 @@ import { motion } from 'motion/react';
 import { FileText, Shield, Lock, Code2 } from 'lucide-react';
 
 export function ProfessionalBackground() {
-  // Código hexadecimal para el efecto de matriz
   const hexChars = '0123456789ABCDEF';
   const generateHexString = () => {
     let result = '';
@@ -14,10 +13,9 @@ export function ProfessionalBackground() {
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Grid de fondo con patrón de código */}
       <div className="absolute inset-0 opacity-[0.03]">
-        <div 
-          className="w-full h-full" 
+        <div
+          className="w-full h-full"
           style={{
             backgroundImage: `
               linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
@@ -28,7 +26,6 @@ export function ProfessionalBackground() {
         />
       </div>
 
-      {/* Patrón hexagonal sutil */}
       <svg className="absolute inset-0 w-full h-full opacity-[0.02]">
         <defs>
           <pattern id="hexagons" width="100" height="86.6" patternUnits="userSpaceOnUse">
@@ -44,7 +41,6 @@ export function ProfessionalBackground() {
         <rect width="100%" height="100%" fill="url(#hexagons)" />
       </svg>
 
-      {/* Líneas de conexión profesionales */}
       {[...Array(12)].map((_, i) => (
         <motion.div
           key={`connection-${i}`}
@@ -79,7 +75,6 @@ export function ProfessionalBackground() {
         </motion.div>
       ))}
 
-      {/* Códigos hexadecimales flotantes - estilo matriz */}
       {[...Array(15)].map((_, i) => (
         <motion.div
           key={`hex-${i}`}
@@ -109,7 +104,6 @@ export function ProfessionalBackground() {
         </motion.div>
       ))}
 
-      {/* Nodos de red conectados */}
       {[...Array(8)].map((_, i) => (
         <motion.div
           key={`node-${i}`}
@@ -133,7 +127,6 @@ export function ProfessionalBackground() {
         />
       ))}
 
-      {/* Iconos corporativos flotantes muy sutiles */}
       {[Shield, Lock, Code2, FileText].map((Icon, i) => (
         <motion.div
           key={`corp-icon-${i}`}
@@ -159,7 +152,6 @@ export function ProfessionalBackground() {
         </motion.div>
       ))}
 
-      {/* Líneas de escaneo verticales */}
       {[...Array(3)].map((_, i) => (
         <motion.div
           key={`scan-${i}`}
@@ -181,7 +173,6 @@ export function ProfessionalBackground() {
         />
       ))}
 
-      {/* Efecto de datos fluyendo */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
         {[...Array(6)].map((_, i) => (
           <motion.circle
@@ -206,7 +197,6 @@ export function ProfessionalBackground() {
         ))}
       </svg>
 
-      {/* Cuadrícula de profundidad con perspectiva */}
       <div className="absolute inset-0 opacity-[0.015]" style={{ perspective: '1000px' }}>
         <motion.div
           animate={{
@@ -229,7 +219,6 @@ export function ProfessionalBackground() {
         />
       </div>
 
-      {/* Partículas de datos pequeñas */}
       {[...Array(30)].map((_, i) => (
         <motion.div
           key={`particle-${i}`}
@@ -257,7 +246,6 @@ export function ProfessionalBackground() {
         />
       ))}
 
-      {/* Ondas de pulso desde los bordes */}
       {[...Array(4)].map((_, i) => (
         <motion.div
           key={`edge-pulse-${i}`}
@@ -280,7 +268,6 @@ export function ProfessionalBackground() {
         />
       ))}
 
-      {/* Texto de código de fondo */}
       <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] font-mono text-xs text-blue-400 overflow-hidden">
         <motion.pre
           animate={{

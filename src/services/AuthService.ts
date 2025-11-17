@@ -1,4 +1,4 @@
-import { authEventBus, type AuthEventTopic } from '../utils/eventBus';
+import { authEventBus } from '../utils/eventBus';
 
 interface StorageAdapter {
   get(key: string): string | null;
@@ -27,15 +27,22 @@ class AuthService {
   private session = new SessionStorageAdapter();
 
   async login(email: string, password: string, rememberMe: boolean): Promise<void> {
+    // Adapter selection according to "Recordarme"
     const adapter = rememberMe ? this.local : this.session;
+    // Persist last email for UX continuity
     adapter.set('auth:last_email', email);
-    // Emitimos evento usando el EventBus Singleton
+    // Publish login attempt event with strong typing
     const payload: LoginPayload = { email, rememberMe };
     authEventBus.publish('auth:login_attempt', { ts: Date.now(), ...payload });
-    // Simulación: en integración real haríamos peticiones y redirección
+    // Simulate successful authentication and persist token/user
+    const mockToken = `mock-token-${Math.random().toString(36).slice(2)}`;
+    const mockUser = { email };
+    adapter.set('auth:token', mockToken);
+    adapter.set('auth:user', JSON.stringify(mockUser));
   }
 
   async register(name: string, email: string, password: string): Promise<void> {
+    // Keep minimal persistence for register flow (no token until login)
     this.session.set('auth:last_register_name', name);
     const payload: RegisterPayload = { name, email };
     authEventBus.publish('auth:register_click', { ts: Date.now(), ...payload });

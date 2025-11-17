@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 
 type AuthUser = {
   name?: string;
@@ -63,16 +63,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const isAuthenticated = () => {
+  const isAuthenticated = useCallback(() => {
     if (user) return true;
     try {
       return !!window.localStorage.getItem(SESSION_KEY);
     } catch {
       return false;
     }
-  };
+  }, [user]);
 
-  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, isAuthenticated }), [user]);
+  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, isAuthenticated }), [user, isAuthenticated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

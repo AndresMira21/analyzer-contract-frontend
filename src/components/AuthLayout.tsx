@@ -11,7 +11,6 @@ export function AuthLayout(): JSX.Element {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide">
       <ProfessionalBackground />
 
-      {/* Botón para volver a Home (persistente entre Login/Register) */}
       <motion.button
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -27,10 +26,10 @@ export function AuthLayout(): JSX.Element {
 
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
-          {/* Ilustración compartida y persistente */}
+          
           <ContractIllustration />
 
-          {/* Contenido del formulario como hijo anidado (Outlet) */}
+          
           <div className="w-full">
             <Outlet />
           </div>

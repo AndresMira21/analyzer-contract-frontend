@@ -173,7 +173,6 @@ export function HomePage({ onLogin, onRegister }) {
         </div>
       </motion.header>
 
-      {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-6">
         <div className="container mx-auto max-w-7xl relative z-10">
           <motion.div
@@ -206,7 +205,6 @@ export function HomePage({ onLogin, onRegister }) {
                 Tu asistente inteligente para
               </motion.h1>
 
-              {/* Texto estático con efecto de brillo */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -229,7 +227,6 @@ export function HomePage({ onLogin, onRegister }) {
                 >
                   análisis de contratos
 
-                  {/* Efecto de brillo que recorre el texto */}
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0"
                     animate={{
@@ -262,7 +259,6 @@ export function HomePage({ onLogin, onRegister }) {
               apoyo de inteligencia artificial.
             </motion.p>
 
-            {/* Iconos flotantes animados alrededor del hero */}
             {[
               { Icon: Brain, delay: 0, x: -100, y: -50 },
               { Icon: Shield, delay: 0.2, x: 100, y: -30 },
@@ -294,7 +290,6 @@ export function HomePage({ onLogin, onRegister }) {
           </motion.div>
         </div>
 
-        {/* Elementos decorativos más sutiles */}
         <motion.div
           animate={{
             scale: [1, 1.2, 1],
@@ -321,7 +316,6 @@ export function HomePage({ onLogin, onRegister }) {
           className="absolute bottom-20 right-20 w-[500px] h-[500px] bg-slate-700/10 rounded-full blur-3xl pointer-events-none"
         />
 
-        {/* Partículas brillantes flotantes */}
         {[...Array(15)].map((_, i) => (
           <motion.div
             key={`particle-${i}`}
@@ -347,7 +341,6 @@ export function HomePage({ onLogin, onRegister }) {
         ))}
       </section>
 
-      {/* Cómo funciona */}
       <section className="relative py-20 px-6">
         <div className="container mx-auto max-w-7xl relative z-10">
           <motion.div
@@ -401,7 +394,6 @@ export function HomePage({ onLogin, onRegister }) {
                 className="relative"
               >
                 <Card className="bg-slate-900/50 backdrop-blur-lg border-slate-700/50 p-8 h-full hover:bg-slate-800/50 hover:border-blue-600/50 transition-all duration-300 group relative overflow-hidden">
-                  {/* Efecto de luz en hover */}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-400/10 to-blue-600/0"
                     initial={{ x: '-100%' }}
@@ -420,7 +412,6 @@ export function HomePage({ onLogin, onRegister }) {
                     >
                       <step.icon className="h-8 w-8 text-white" />
                       
-                      {/* Pulso en el icono */}
                       <motion.div
                         className="absolute inset-0 rounded-2xl bg-blue-400/20"
                         animate={{
@@ -451,8 +442,7 @@ export function HomePage({ onLogin, onRegister }) {
                     transition={{ delay: index * 0.1 + 0.3 }}
                     className="hidden lg:block absolute top-1/2 -right-3 w-6 h-0.5 bg-gradient-to-r from-slate-600 to-transparent"
                   >
-                    {/* Partícula que se mueve por la línea */}
-                    <motion.div
+                  <motion.div
                       className="absolute w-2 h-2 bg-blue-400 rounded-full"
                       animate={{
                         x: [0, 24, 0],
@@ -475,7 +465,6 @@ export function HomePage({ onLogin, onRegister }) {
         </div>
       </section>
 
-      {/* Características principales */}
       <section className="relative py-20 px-6 bg-slate-950/30">
         <div className="container mx-auto max-w-7xl relative z-10">
           <motion.div
@@ -525,12 +514,10 @@ export function HomePage({ onLogin, onRegister }) {
                 }}
               >
                 <Card className="bg-slate-900/50 backdrop-blur-lg border-slate-700/50 p-8 h-full hover:bg-slate-800/50 hover:border-blue-600/50 hover:shadow-2xl hover:shadow-blue-600/20 transition-all duration-300 group overflow-hidden relative">
-                  {/* Resplandor de fondo animado */}
                   <motion.div
                     className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
                   />
                   
-                  {/* Efecto de onda en hover */}
                   <motion.div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100"
                     initial={{ scale: 0, opacity: 0 }}
@@ -546,7 +533,6 @@ export function HomePage({ onLogin, onRegister }) {
                     >
                       <feature.icon className="h-7 w-7 text-white" />
                       
-                      {/* Anillos de pulso alrededor del icono */}
                       <motion.div
                         className={`absolute inset-0 rounded-xl bg-gradient-to-br ${feature.color}`}
                         animate={{
@@ -611,7 +597,6 @@ export function HomePage({ onLogin, onRegister }) {
         </div>
       </section>
 
-      {/* Detección de Cláusulas */}
       <section className="relative py-24 px-6">
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -761,7 +746,6 @@ export function HomePage({ onLogin, onRegister }) {
                 </div>
               </div>
 
-              {/* Elementos decorativos */}
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{
@@ -776,7 +760,6 @@ export function HomePage({ onLogin, onRegister }) {
         </div>
       </section>
 
-      {/* CTA Final */}
       <section className="relative py-24 px-6">
         <div className="container mx-auto max-w-5xl relative z-10">
           <motion.div
@@ -856,7 +839,6 @@ export function HomePage({ onLogin, onRegister }) {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="relative py-12 px-6 border-t border-slate-800/50">
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">

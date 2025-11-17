@@ -4,11 +4,12 @@ import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProfessionalBackground } from './ProfessionalBackground.jsx';
 import { motion } from 'motion/react';
+import { motion as fmMotion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
-import { LogIn, UserPlus, Shield, Search, CheckCircle, Zap, Home, Sparkles } from 'lucide-react';
+import { LogIn, UserPlus, Home } from 'lucide-react';
 import { ContractIllustration } from './ContractIllustration';
 import { authService } from '../services/AuthService';
 import { useAuth } from '../context/AuthContext';
@@ -17,26 +18,27 @@ import { AnimationFactory } from '../utils/animationFactory';
 interface LoginFormProps {
   mode?: 'login' | 'register';
   onModeChange?: (mode: 'login' | 'register') => void;
+  onRegisterSuccess?: () => void;
 }
 
-export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
+export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: LoginFormProps) {
   const { login, register } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  // Validation state
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
   
   const [isExiting, setIsExiting] = useState(false);
   const [flipDir, setFlipDir] = useState<1 | -1>(1);
 
   const isRegister = mode === 'register';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Basic validations
     const nextErrors: { name?: string; email?: string; password?: string; confirmPassword?: string } = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -54,6 +56,9 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
       if (!name.trim()) {
         nextErrors.name = 'El nombre es obligatorio';
       }
+      if (password.trim() && password.length < 6) {
+        nextErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+      }
       if (!confirmPassword.trim()) {
         nextErrors.confirmPassword = 'Confirma tu contraseña';
       } else if (password.trim() && confirmPassword !== password) {
@@ -64,24 +69,27 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
     setErrors(nextErrors);
     const isValid = Object.keys(nextErrors).length === 0;
     if (!isValid) return;
-    if (isRegister) {
-      // Simulated register via AuthContext
-      register(name, email, password);
-      console.log('Register attempt:', { name, email, password });
-    } else {
-      // Simulated login via AuthContext
-      login(email, password, rememberMe);
-      console.log('Login attempt:', { email, password, rememberMe });
+    setIsLoading(true);
+    try {
+      if (isRegister) {
+        await authService.register(name, email, password);
+        const result = register(name, email, password);
+        await Promise.resolve(result);
+        if (onRegisterSuccess) onRegisterSuccess();
+        triggerModeChange('login');
+      } else {
+        await authService.login(email, password, rememberMe);
+        login(email, password, rememberMe);
+        navigate('/dashboard');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Maneja la transición visual y la navegación entre modos.
-  // Comentario: ajusta la dirección del flip (register => 90°, login => -90°)
-  // y navega tras completar la animación.
   const triggerModeChange = (nextMode: 'login' | 'register') => {
     setFlipDir(nextMode === 'register' ? 1 : -1);
     setIsExiting(true);
-    // Duración coherente con transition del contenedor
     window.setTimeout(() => {
       onModeChange?.(nextMode);
       setIsExiting(false);
@@ -94,51 +102,13 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
       initial={{ opacity: 0, rotateY: -8, scale: 0.98, transformPerspective: 1000 }}
       animate={
         isExiting
-          ? { opacity: 0, rotateY: 90 * flipDir, scale: 0.98, transformPerspective: 1000 }
+          ? { opacity: 1, rotateY: 12 * flipDir, scale: 0.99, transformPerspective: 1000 }
           : { opacity: 1, rotateY: 0, scale: 1, transformPerspective: 1000 }
       }
       transition={{ duration: 0.45, ease: 'easeInOut' }}
       className="w-full bg-slate-900/90 backdrop-blur-xl p-16 rounded-2xl shadow-2xl border border-slate-700/50 relative overflow-hidden h-full"
       style={{ transformStyle: 'preserve-3d' }}
     >
-      {/* Efecto de brillo animado en el borde */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl"
-        animate={{
-          background: [
-            'linear-gradient(0deg, transparent, transparent)',
-            'linear-gradient(180deg, rgba(59, 130, 246, 0.1), transparent)',
-            'linear-gradient(360deg, transparent, transparent)',
-          ],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-      />
-
-      {/* Partículas flotantes en el fondo del formulario */}
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
-          style={{
-            left: `${20 + i * 15}%`,
-            top: `${10 + i * 15}%`,
-          }}
-          animate={{
-            y: [0, -20, 0],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            delay: i * 0.5,
-          }}
-        />
-      ))}
-
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -153,12 +123,6 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
         >
           {isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
         </motion.h2>
-        <motion.span
-          className="absolute left-1/2 -translate-x-1/2 -top-1 w-48 h-6 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-          animate={{ opacity: [0, 1, 0], x: ['-50%', '50%', '-50%'] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ filter: 'blur(14px)' }}
-        />
         <p className="text-slate-400 text-lg tracking-wide">
           {isRegister
             ? 'Únete a LegalConnect y analiza tus contratos'
@@ -196,7 +160,7 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
               className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
             />
             {errors.name && (
-              <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+              <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm mt-1">{errors.name}</motion.p>
             )}
           </motion.div>
         )}
@@ -223,7 +187,7 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
             className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
           />
           {errors.email && (
-            <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm mt-1">{errors.email}</motion.p>
           )}
         </motion.div>
 
@@ -249,7 +213,7 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
             className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
           />
           {errors.password && (
-            <p className="text-red-400 text-sm mt-1">{errors.password}</p>
+            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm mt-1">{errors.password}</motion.p>
           )}
         </motion.div>
 
@@ -276,7 +240,7 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
               className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
             />
             {errors.confirmPassword && (
-              <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>
+              <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm mt-1">{errors.confirmPassword}</motion.p>
             )}
           </motion.div>
         )}
@@ -321,8 +285,8 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white py-7 text-lg gap-2 shadow-lg shadow-blue-900/50 hover:shadow-xl hover:shadow-blue-800/50 transition-all duration-300 relative overflow-hidden group font-semibold tracking-wide"
+            disabled={isLoading}
           >
-            {/* Efecto de brillo en el botón */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
               animate={{
@@ -334,6 +298,9 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
                 repeatDelay: 1,
               }}
             />
+            {isLoading && (
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
             {isRegister ? (
               <>
                 <UserPlus className="h-6 w-6 relative z-10" />
@@ -379,27 +346,50 @@ export function LoginForm({ mode = 'login', onModeChange }: LoginFormProps) {
           )}
         </motion.div>
       </motion.form>
+      <motion.div
+        className="text-center mt-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7 }}
+      >
+        <button
+          type="button"
+          className="text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
+          onClick={() => navigate('/')}
+        >
+          Volver al inicio
+        </button>
+      </motion.div>
     </motion.div>
   );
 }
 
-// Página contenedora por defecto para routing: mantiene el JSX del formulario
-export default function Login() {
+type LoginProps = {
+  goRegister?: () => void;
+};
+
+export default function Login({ goRegister }: LoginProps) {
   const navigate = useNavigate();
   const handleModeChange = (mode: 'login' | 'register') => {
     if (mode === 'register') {
-      // Al hacer clic en "Regístrate gratis" se navega a /register
+      if (goRegister) {
+        goRegister();
+        return;
+      }
       navigate('/register');
       return;
     }
-    // Si se solicita volver a login, permanecemos en esta página
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide">
+    <fmMotion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
+      className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide"
+    >
       <ProfessionalBackground />
       
-      {/* Botón para volver a Home */}
       <motion.button
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -414,20 +404,17 @@ export default function Login() {
       </motion.button>
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
-          {/* Ilustración compartida para consistencia entre Login y Register */}
           <ContractIllustration />
 
-          {/* Formulario más grande a la derecha, con transición de entrada */}
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
             <LoginForm mode="login" onModeChange={handleModeChange} />
           </motion.div>
         </div>
       </div>
-    </div>
+    </fmMotion.div>
   );
 }
 
-// Contenido para usarse dentro del AuthLayout (sin volver a montar la ilustración)
 export function LoginContent(): JSX.Element {
   const navigate = useNavigate();
   const handleModeChange = (mode: 'login' | 'register') => {
