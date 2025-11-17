@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, FileText, Upload, Brain, Settings, LogOut, User } from 'lucide-react';
+import { Home, FileText, Upload, Brain, Settings, LogOut, User, Folder, Layers, Trash2, Globe } from 'lucide-react';
 
 type Props = {
   userName: string;
@@ -9,50 +9,55 @@ type Props = {
 };
 
 export default function DashboardSidebar({ userName, userEmail, onLogout }: Props): JSX.Element {
-  const linkBase = 'flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:text-blue-300 hover:bg-slate-800/60 transition-all';
-  const activeBase = 'bg-blue-900/40 text-blue-200';
+  const linkBase = 'flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 transition-all';
+  const activeBase = 'text-white';
 
   return (
-    <aside className="w-72 border-r border-slate-700/50 bg-slate-900/60 backdrop-blur-xl">
-      <div className="px-6 py-6 border-b border-slate-700/50">
+    <aside className="w-72 border-r backdrop-blur-xl" style={{ backgroundColor: 'rgba(20,30,60,0.28)', borderColor: 'rgba(58, 123, 255, 0.18)' }}>
+      <div className="px-6 py-6 space-y-4" style={{ borderBottom: '1px solid rgba(58,123,255,0.18)', backgroundColor: 'rgba(20,30,60,0.22)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full text-white flex items-center justify-center" style={{ backgroundColor: '#3A7BFF' }}>
             <User className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-white font-semibold">{userName}</div>
-            {userEmail && <div className="text-slate-400 text-sm">{userEmail}</div>}
+            <div className="text-white font-semibold">Usuario</div>
           </div>
         </div>
+        
       </div>
 
       <nav className="px-4 py-6 space-y-1">
-        <NavLink to="/dashboard" end className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`}>
-          <Home className="h-5 w-5 text-blue-400" />
-          <span>Inicio</span>
+        <NavLink to="/dashboard" end className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`} style={({ isActive }) => ({ borderLeft: isActive ? '2px solid #3A7BFF' : '2px solid transparent', backgroundColor: isActive ? 'rgba(58,123,255,0.12)' : 'transparent' })}>
+          <Home className="h-5 w-5" color="#3A7BFF" />
+          <span>Dashboard</span>
         </NavLink>
-        <NavLink to="/dashboard/contracts" className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`}>
-          <FileText className="h-5 w-5 text-blue-400" />
-          <span>Mis contratos</span>
+        <NavLink to="/dashboard/contracts" className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`} style={({ isActive }) => ({ borderLeft: isActive ? '2px solid #3A7BFF' : '2px solid transparent', backgroundColor: isActive ? 'rgba(58,123,255,0.12)' : 'transparent' })}>
+          <FileText className="h-5 w-5" color="#3A7BFF" />
+          <span>Contratos</span>
         </NavLink>
-        <NavLink to="/dashboard/upload" className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`}>
-          <Upload className="h-5 w-5 text-blue-400" />
-          <span>Subir contrato</span>
+        
+        <NavLink to="/dashboard/ai" className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`} style={({ isActive }) => ({ borderLeft: isActive ? '2px solid #3A7BFF' : '2px solid transparent', backgroundColor: isActive ? 'rgba(58,123,255,0.12)' : 'transparent' })}>
+          <Brain className="h-5 w-5" color="#3A7BFF" />
+          <span>Chat Legal</span>
         </NavLink>
-        <NavLink to="/dashboard/ai" className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`}>
-          <Brain className="h-5 w-5 text-blue-400" />
-          <span>Análisis con IA</span>
-        </NavLink>
-        <NavLink to="/dashboard/settings" className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`}>
-          <Settings className="h-5 w-5 text-blue-400" />
+        <NavLink to="/dashboard/settings" className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`} style={({ isActive }) => ({ borderLeft: isActive ? '2px solid #3A7BFF' : '2px solid transparent', backgroundColor: isActive ? 'rgba(58,123,255,0.12)' : 'transparent' })}>
+          <Settings className="h-5 w-5" color="#3A7BFF" />
           <span>Configuración</span>
         </NavLink>
       </nav>
 
-      <div className="mt-auto px-4 py-6 border-t border-slate-700/50">
-        <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white transition-all">
-          <LogOut className="h-5 w-5 text-blue-400" />
-          <span>Cerrar sesión</span>
+      <div className="mt-auto px-4 py-6 space-y-3" style={{ borderTop: '1px solid rgba(58,123,255,0.18)' }}>
+        <div className="flex items-center gap-3 px-3 py-3 rounded-xl" style={{ backgroundColor: 'rgba(20,30,60,0.22)' }}>
+          <Globe className="h-5 w-5" color="#3A7BFF" />
+          <span className="text-slate-300">Profile</span>
+        </div>
+        <div className="flex items-center gap-3 px-3 py-3 rounded-xl" style={{ backgroundColor: 'rgba(20,30,60,0.22)' }}>
+          <Trash2 className="h-5 w-5" color="#3A7BFF" />
+          <span className="text-slate-300">Recently Deleted</span>
+        </div>
+        <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white transition-all" style={{ backgroundColor: 'rgba(20,30,60,0.35)' }}>
+          <LogOut className="h-5 w-5" color="#3A7BFF" />
+          <span>Logout</span>
         </button>
       </div>
     </aside>

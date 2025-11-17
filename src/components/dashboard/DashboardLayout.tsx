@@ -15,7 +15,7 @@ export default function DashboardLayout(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-blue-950 text-white relative">
       <ProfessionalBackground />
       <div className="flex h-screen relative z-10">
         <DashboardSidebar userName={user?.name ?? 'Usuario'} userEmail={user?.email ?? ''} onLogout={handleLogout} />

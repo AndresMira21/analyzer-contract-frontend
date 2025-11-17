@@ -2,80 +2,120 @@ import type { JSX } from 'react';
 import { motion } from 'motion/react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { FileText, AlertTriangle, CheckCircle } from 'lucide-react';
+import Lottie from 'lottie-react';
+import { ChevronRight } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Link } from 'react-router-dom';
+import robotAnimation from '../../assets/animations/Robot assistant  Online manager.json';
 
 export default function DashboardHome(): JSX.Element {
   const { user } = useAuth();
   const name = user?.name ?? 'Usuario';
 
   const stats = [
-    { icon: FileText, title: 'Contratos creados', value: 12 },
-    { icon: CheckCircle, title: 'Contratos por revisar', value: 5 },
-    { icon: AlertTriangle, title: 'Contratos en riesgo', value: 2 },
+    { icon: FileText, title: 'Contratos analizados', value: 124 },
   ];
 
-  const recent = [
-    { id: 'CNT-001', name: 'Contrato de Servicios', status: 'En revisión', date: '2025-11-10' },
-    { id: 'CNT-002', name: 'Contrato de Arrendamiento', status: 'Aprobado', date: '2025-11-08' },
-    { id: 'CNT-003', name: 'Contrato de Confidencialidad', status: 'Riesgo alto', date: '2025-11-06' },
-  ];
+  
 
   return (
-    <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight">Hola, {name} 👋</h1>
-        <p className="text-slate-300">Bienvenido a tu panel de LegalConnect</p>
+    <div className="space-y-10">
+      <motion.div initial={{ opacity: 0, y: 8, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5 }}>
+        <motion.h1
+          className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight"
+          style={{ backgroundSize: '200% auto' }}
+          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+        >
+          Hola, {name} 👋
+        </motion.h1>
+        
+        <div className="relative min-h-[68vh] flex flex-col items-center justify-center">
+          <motion.h2
+            className="text-4xl md:text-6xl lg:text-7xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight mb-4"
+            style={{ backgroundSize: '200% auto' }}
+            animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+          >
+            Bienvenid@ a LegalConnect
+          </motion.h2>
+          <div className="flex justify-center mb-4">
+            <div className="w-[280px] md:w-[340px]">
+              <Lottie animationData={robotAnimation} loop autoplay />
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-5 flex-wrap max-w-[1100px] mx-auto">
+            <div className="flex items-center bg-white/5 rounded-2xl border px-10 h-[84px] w-full sm:w-[600px] md:w-[800px] lg:w-[1000px] max-w-full" style={{ borderColor: 'rgba(58,123,255,0.28)' }}>
+              <input placeholder="Selecciona tu contrato..." className="w-full bg-transparent text-slate-200 placeholder-slate-400 outline-none text-3xl" />
+            </div>
+            <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.98 }}>
+              <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(14,165,233,0.35) 0%, rgba(34,211,238,0.65) 50%, rgba(14,165,233,0.35) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, x: [ -24, 24 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
+              <Button className="text-white h-[84px] px-10 text-3xl" style={{ background: 'linear-gradient(90deg, #0EA5E9 0%, #22D3EE 100%)', boxShadow: '0 14px 34px rgba(34,211,238,0.3)', filter: 'brightness(1.06)' }}>Subir contrato</Button>
+            </motion.div>
+            <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.98 }}>
+              <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(54,90,223,0.22) 0%, rgba(79,140,255,0.44) 50%, rgba(54,90,223,0.22) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.75, x: [ -22, 22 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
+              <Button variant="outline" className="text-white h-[84px] px-10 text-3xl" style={{ borderColor: '#4F8CFF', boxShadow: '0 12px 30px rgba(79,140,255,0.22)', background: 'linear-gradient(90deg, rgba(20,30,60,0.35) 0%, rgba(20,30,60,0.25) 100%)' }}>Crear análisis</Button>
+            </motion.div>
+            <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} whileHover={{ y: -2, scale: 1.06 }} whileTap={{ scale: 0.98 }}>
+              <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'radial-gradient(120px 120px at 50% 50%, rgba(79,140,255,0.5), rgba(79,140,255,0))' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, scale: 1.1 }} transition={{ duration: 0.8 }} />
+              <Link to="/dashboard/ai" className="flex items-center justify-center h-[84px] w-[84px] rounded-2xl" style={{ backgroundColor: 'rgba(79,140,255,0.18)', boxShadow: '0 12px 30px rgba(79,140,255,0.2)' }}>
+                <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 8 }} transition={{ type: 'spring', stiffness: 180, damping: 12 }}>
+                  <ChevronRight className="h-9 w-9" color="#3A7BFF" />
+                </motion.div>
+              </Link>
+            </motion.div>
+          </div>
+          
+          <div className="mt-4 text-slate-400 text-sm md:text-base text-center">
+            Formatos soportados: PDF, DOCX, TXT
+          </div>
+        </div>
       </motion.div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-1 gap-6 max-w-5xl mx-auto px-4">
         {stats.map((s, i) => (
-          <motion.div key={s.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * i }}>
-            <Card className="p-6 bg-slate-900/60 border-slate-700/50 backdrop-blur hover:shadow-2xl hover:shadow-blue-600/20 transition-all">
-              <div className="flex items-center gap-3">
-                <s.icon className="h-6 w-6 text-blue-400" />
-                <div className="text-slate-200 font-medium">{s.title}</div>
+          <motion.div key={s.title} initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ delay: 0.08 * i, duration: 0.5 }} whileHover={{ y: -2, scale: 1.02 }}>
+            <Card className="p-8 backdrop-blur transition-all" style={{ background: 'linear-gradient(180deg, rgba(20,30,60,0.35) 0%, rgba(20,30,60,0.25) 100%)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '18px' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(58,123,255,0.15)' }}>
+                    <s.icon className="h-7 w-7" color="#3A7BFF" />
+                  </div>
+                  <div className="text-slate-200 font-semibold text-xl md:text-2xl">{s.title}</div>
+                </div>
+                <div className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white">{s.value}</div>
               </div>
-              <div className="mt-4 text-4xl font-extrabold text-white">{s.value}</div>
             </Card>
           </motion.div>
         ))}
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <Card className="p-6 bg-slate-900/60 border-slate-700/50 backdrop-blur">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">Contratos recientes</h2>
-            <Button className="bg-blue-600 hover:bg-blue-500 text-white">Ver todos</Button>
-          </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead>
-                <tr className="text-slate-300">
-                  <th className="py-3">Contrato</th>
-                  <th className="py-3">Estado</th>
-                  <th className="py-3">Fecha</th>
-                  <th className="py-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((r) => (
-                  <tr key={r.id} className="border-t border-slate-700/50">
-                    <td className="py-3 text-slate-200">{r.name}</td>
-                    <td className="py-3">
-                      <span className="px-2 py-1 rounded-full text-sm bg-slate-800 text-slate-200">{r.status}</span>
-                    </td>
-                    <td className="py-3 text-slate-300">{r.date}</td>
-                    <td className="py-3">
-                      <Button variant="outline" className="border-slate-700 text-white">Ver detalles</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <motion.div initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5 }}>
+        <Card className="p-7 max-w-5xl mx-auto" style={{ backgroundColor: 'rgba(20,30,60,0.32)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }}>
+          <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">Actividad reciente</h2>
+          <div className="mt-4 space-y-4">
+            {[
+              { id: 'EV-001', title: 'Contrato de Servicios revisado', ts: 'Hace 5 min', type: 'ok' },
+              { id: 'EV-002', title: 'Riesgo alto detectado', ts: 'Hace 1 h', type: 'warn' },
+              { id: 'EV-003', title: 'Nuevo comentario del cliente', ts: 'Ayer', type: 'note' },
+            ].map((ev, idx) => (
+              <motion.div key={ev.id} className="flex items-center justify-between gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * idx, duration: 0.4 }} whileHover={{ y: -2 }}>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full" style={{ backgroundColor: ev.type === 'warn' ? 'rgba(239,68,68,0.15)' : ev.type === 'ok' ? 'rgba(58,123,255,0.15)' : 'rgba(100,116,139,0.15)' }} />
+                  <div>
+                    <div className="text-slate-200">{ev.title}</div>
+                    <div className="text-slate-500 text-sm">{ev.ts}</div>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5" color="#94A3B8" />
+              </motion.div>
+            ))}
           </div>
         </Card>
       </motion.div>
+
+      
     </div>
   );
 }
