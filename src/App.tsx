@@ -19,7 +19,7 @@ function App(): JSX.Element | null {
   const location = useLocation();
   const navigate = useNavigate();
 
-  
+  // hooks must run unconditionally before any early returns
 
   useEffect(() => {
     if (isAuthenticated()) {

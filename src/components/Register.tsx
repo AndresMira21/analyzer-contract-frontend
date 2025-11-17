@@ -36,7 +36,6 @@ export default function Register() {
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
           <ContractIllustration />
-
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
             <LoginForm mode="register" onModeChange={handleModeChange} onRegisterSuccess={() => navigate('/login')} />
           </motion.div>

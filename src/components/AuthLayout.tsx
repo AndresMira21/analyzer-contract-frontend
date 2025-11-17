@@ -11,6 +11,7 @@ export function AuthLayout(): JSX.Element {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-6 relative font-sans antialiased tracking-wide">
       <ProfessionalBackground />
 
+      {/* Botón para volver a Home (persistente entre Login/Register) */}
       <motion.button
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -31,6 +31,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [backendError, setBackendError] = useState<string | undefined>(undefined);
   
   const [isExiting, setIsExiting] = useState(false);
   const [flipDir, setFlipDir] = useState<1 | -1>(1);
@@ -51,13 +52,15 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     if (!password.trim()) {
       nextErrors.password = 'La contraseña es obligatoria';
     }
+    if (isRegister) {
+      if (password.trim() && password.length < 6) {
+        nextErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+      }
+    }
 
     if (isRegister) {
       if (!name.trim()) {
         nextErrors.name = 'El nombre es obligatorio';
-      }
-      if (password.trim() && password.length < 6) {
-        nextErrors.password = 'La contraseña debe tener al menos 6 caracteres';
       }
       if (!confirmPassword.trim()) {
         nextErrors.confirmPassword = 'Confirma tu contraseña';
@@ -69,22 +72,50 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     setErrors(nextErrors);
     const isValid = Object.keys(nextErrors).length === 0;
     if (!isValid) return;
+    setBackendError(undefined);
     setIsLoading(true);
-    try {
+    window.setTimeout(() => {
+      if (!isRegister) {
+        if (email.toLowerCase().includes('invalid')) {
+          setBackendError('Invalid credentials');
+          setIsLoading(false);
+          return;
+        }
+        if (email.toLowerCase().includes('notfound')) {
+          setBackendError('User not found');
+          setIsLoading(false);
+          return;
+        }
+        if (password === 'wrong') {
+          setBackendError('Incorrect password');
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        if (email.toLowerCase().includes('exists')) {
+          setBackendError('Email already exists');
+          setIsLoading(false);
+          return;
+        }
+        if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+          setBackendError('Missing fields');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      try {
+        window.localStorage.setItem('fake_token', '123');
+      } catch {}
+
       if (isRegister) {
-        await authService.register(name, email, password);
-        const result = register(name, email, password);
-        await Promise.resolve(result);
         if (onRegisterSuccess) onRegisterSuccess();
         triggerModeChange('login');
       } else {
-        await authService.login(email, password, rememberMe);
-        login(email, password, rememberMe);
         navigate('/dashboard');
       }
-    } finally {
       setIsLoading(false);
-    }
+    }, 900);
   };
 
   const triggerModeChange = (nextMode: 'login' | 'register') => {
@@ -95,6 +126,8 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
       setIsExiting(false);
     }, 450);
   };
+
+
 
   return (
     <motion.div
@@ -144,21 +177,22 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Label htmlFor="name" className="text-slate-300 text-base font-medium tracking-wide">
-              Nombre completo
-            </Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Tu nombre"
-              value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                setName(e.target.value);
-                setErrors((prev) => ({ ...prev, name: undefined }));
-              }}
-              required
-              className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
-            />
+          <Label htmlFor="name" className="text-slate-300 text-base font-medium tracking-wide">
+            Nombre completo
+          </Label>
+          <Input
+            id="name"
+            type="text"
+            placeholder="Tu nombre"
+            value={name}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setName(e.target.value);
+              setErrors((prev) => ({ ...prev, name: undefined }));
+              setBackendError(undefined);
+            }}
+            required
+            className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
+          />
             {errors.name && (
               <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm mt-1">{errors.name}</motion.p>
             )}
@@ -182,6 +216,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setEmail(e.target.value);
               setErrors((prev) => ({ ...prev, email: undefined }));
+              setBackendError(undefined);
             }}
             required
             className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
@@ -208,6 +243,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setPassword(e.target.value);
               setErrors((prev) => ({ ...prev, password: undefined }));
+              setBackendError(undefined);
             }}
             required
             className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
@@ -235,6 +271,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 setConfirmPassword(e.target.value);
                 setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                setBackendError(undefined);
               }}
               required
               className="border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 h-12 text-base"
@@ -268,7 +305,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             <button
               type="button"
               className="text-sm text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
-              onClick={() => console.log('Forgot password')}
+              onClick={() => {}}
             >
               ¿Olvidaste tu contraseña?
             </button>
@@ -287,6 +324,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             className="w-full bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white py-7 text-lg gap-2 shadow-lg shadow-blue-900/50 hover:shadow-xl hover:shadow-blue-800/50 transition-all duration-300 relative overflow-hidden group font-semibold tracking-wide"
             disabled={isLoading}
           >
+            {/* Efecto de brillo en el botón */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
               animate={{
@@ -314,6 +352,10 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             )}
           </Button>
         </motion.div>
+
+        {backendError && (
+          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-sm mt-2">{backendError}</motion.p>
+        )}
 
         <motion.div
           className="text-center text-base text-slate-400 pt-6 border-t border-slate-700/50 tracking-wide"
@@ -414,7 +456,7 @@ export default function Login({ goRegister }: LoginProps) {
     </fmMotion.div>
   );
 }
-
+  
 export function LoginContent(): JSX.Element {
   const navigate = useNavigate();
   const handleModeChange = (mode: 'login' | 'register') => {
