@@ -2,7 +2,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import type { JSX } from 'react';
 import { motion } from 'motion/react';
 import { ProfessionalBackground } from './ProfessionalBackground.jsx';
-import { ContractIllustration } from './ContractIllustration';
+import { ContractAnimation } from './ContractAnimation';
 import { Home } from 'lucide-react';
 
 export function AuthLayout(): JSX.Element {
@@ -28,7 +28,7 @@ export function AuthLayout(): JSX.Element {
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
           
-          <ContractIllustration />
+          <ContractAnimation />
 
           
           <div className="w-full">

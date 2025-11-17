@@ -7,7 +7,7 @@ import { useAuth } from "./context/AuthContext";
 import { LoginForm } from "./components/Login";
 import { motion } from "motion/react";
 import { ProfessionalBackground } from "./components/ProfessionalBackground.jsx";
-import { ContractIllustration } from "./components/ContractIllustration";
+import { ContractAnimation } from "./components/ContractAnimation";
 import { AnimationFactory } from "./utils/animationFactory";
 import { useNavigate } from "react-router-dom";
 
@@ -77,7 +77,7 @@ function App(): JSX.Element | null {
           <ProfessionalBackground />
           <div className="w-full h-full max-w-[1600px] mx-auto">
             <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
-              <ContractIllustration />
+              <ContractAnimation />
               <div className="w-full">
                 <motion.div initial={initial} animate={animate} transition={transition}>
                   <LoginForm

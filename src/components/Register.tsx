@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { JSX } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ProfessionalBackground } from './ProfessionalBackground.jsx';
 import { LoginForm } from './Login';
 import { Home } from 'lucide-react';
-import { ContractIllustration } from './ContractIllustration';
+import { ContractAnimation } from './ContractAnimation';
 import { AnimationFactory } from '../utils/animationFactory';
 
 export default function Register() {
   const navigate = useNavigate();
+  const [currentMode, setCurrentMode] = useState<'login' | 'register'>('register');
+  
   const handleModeChange = (mode: 'login' | 'register') => {
+    setCurrentMode(mode);
     if (mode === 'login') {
       navigate('/login');
       return;
@@ -35,10 +39,27 @@ export default function Register() {
 
       <div className="w-full h-full max-w-[1600px] mx-auto">
         <div className="grid md:grid-cols-2 gap-0 h-full min-h-[700px]">
-          <ContractIllustration />
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-            <LoginForm mode="register" onModeChange={handleModeChange} onRegisterSuccess={() => navigate('/login')} />
+          {/* Ilustración con fade sutil al cambiar de modo */}
+          <motion.div
+            key={`illustration-${currentMode}`}
+            initial={{ opacity: 0.85 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+          <ContractAnimation />
           </motion.div>
+          
+          {/* Contenedor con perspectiva para el efecto flip card */}
+          <div style={{ perspective: '800px' }} className="flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <LoginForm 
+                key={currentMode} 
+                mode={currentMode} 
+                onModeChange={handleModeChange} 
+                onRegisterSuccess={() => navigate('/login')} 
+              />
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>
