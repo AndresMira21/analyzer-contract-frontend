@@ -19,10 +19,16 @@ export default function DashboardHome(): JSX.Element {
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [isAnalyzeOpen, setIsAnalyzeOpen] = useState<boolean>(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; type: string; size: number; contractName?: string }[]>([]);
-
+  
   const stats = [
     { icon: FileText, title: 'Contratos analizados', value: 124 },
   ];
+
+  const [activity, setActivity] = useState<{ id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note' }[]>([
+    { id: 'EV-001', title: 'Contrato de Servicios revisado', ts: 'Hace 5 min', type: 'ok' },
+    { id: 'EV-002', title: 'Riesgo alto detectado', ts: 'Hace 1 h', type: 'warn' },
+    { id: 'EV-003', title: 'Nuevo comentario del cliente', ts: 'Ayer', type: 'note' },
+  ]);
 
   
 
@@ -54,7 +60,15 @@ export default function DashboardHome(): JSX.Element {
           </div>
           <div className="flex items-center justify-center gap-5 flex-wrap max-w-[1100px] mx-auto">
             <div className="flex items-center bg-white/5 rounded-2xl border px-10 h-[84px] w-full sm:w-[600px] md:w-[800px] lg:w-[1000px] max-w-full" style={{ borderColor: 'rgba(58,123,255,0.28)' }}>
-              <input placeholder="Selecciona tu contrato..." className="w-full bg-transparent text-slate-200 placeholder-slate-400 outline-none text-3xl" />
+              <motion.div
+                className="w-full text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight"
+                style={{ backgroundSize: '200% auto' }}
+                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                whileHover={{ scale: 1.02, y: -2 }}
+              >
+                Selecciona tu contrato
+              </motion.div>
             </div>
             <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.98 }}>
             <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(14,165,233,0.35) 0%, rgba(34,211,238,0.65) 50%, rgba(14,165,233,0.35) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, x: [ -24, 24 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
@@ -74,9 +88,7 @@ export default function DashboardHome(): JSX.Element {
             </motion.div>
           </div>
           
-          <div className="mt-4 text-slate-400 text-sm md:text-base text-center">
-            Formatos soportados: PDF, DOCX, TXT
-          </div>
+          
         </div>
       </motion.div>
 
@@ -102,11 +114,7 @@ export default function DashboardHome(): JSX.Element {
         <Card className="p-7 max-w-5xl mx-auto" style={{ backgroundColor: 'rgba(20,30,60,0.32)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }}>
           <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">Actividad reciente</h2>
           <div className="mt-4 space-y-4">
-            {[
-              { id: 'EV-001', title: 'Contrato de Servicios revisado', ts: 'Hace 5 min', type: 'ok' },
-              { id: 'EV-002', title: 'Riesgo alto detectado', ts: 'Hace 1 h', type: 'warn' },
-              { id: 'EV-003', title: 'Nuevo comentario del cliente', ts: 'Ayer', type: 'note' },
-            ].map((ev, idx) => (
+            {activity.map((ev, idx) => (
               <motion.div key={ev.id} className="flex items-center justify-between gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * idx, duration: 0.4 }} whileHover={{ y: -2 }}>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full" style={{ backgroundColor: ev.type === 'warn' ? 'rgba(239,68,68,0.15)' : ev.type === 'ok' ? 'rgba(58,123,255,0.15)' : 'rgba(100,116,139,0.15)' }} />
@@ -122,7 +130,7 @@ export default function DashboardHome(): JSX.Element {
         </Card>
       </motion.div>
 
-      <UploadContractModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUploaded={(file) => { setUploadedFiles(prev => [...prev, file]); setIsAnalyzeOpen(true); }} />
+      <UploadContractModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUploaded={(file) => { setUploadedFiles(prev => [...prev, file]); setActivity(prev => [{ id: `EV-${Date.now()}`, title: `Contrato subido: ${file.contractName || file.name}`, ts: 'Hace 1 min', type: 'note' }, ...prev]); setIsAnalyzeOpen(true); }} />
       <AnalyzeTextModal
         isOpen={isAnalyzeOpen}
         onClose={() => setIsAnalyzeOpen(false)}
@@ -139,12 +147,23 @@ export default function DashboardHome(): JSX.Element {
             recommendations: ['Definir métricas de desempeño', 'Agregar cláusula de resolución de disputas'],
             summary: 'Análisis inicial automático basado en el documento subido.'
           };
+          setActivity(prev => [{ id: `EV-${Date.now() + 1}`, title: `Contrato analizado: ${analyzed.name}`, ts: 'Hace 1 min', type: 'ok' }, ...prev]);
           navigate('/dashboard/contracts', { state: { analyzedContract: analyzed } });
           setUploadedFiles(prev => {
             const next = prev.filter(f => f !== file);
             if (next.length === 0) setIsAnalyzeOpen(false);
             return next;
           });
+        }}
+        onRemove={(file) => {
+          const ok = window.confirm('¿Eliminar este archivo pendiente?');
+          if (!ok) return;
+          setUploadedFiles(prev => {
+            const next = prev.filter(f => f !== file);
+            if (next.length === 0) setIsAnalyzeOpen(false);
+            return next;
+          });
+          setActivity(prev => [{ id: `EV-${Date.now() + 2}`, title: `Archivo eliminado: ${file.contractName || file.name}`, ts: 'Hace 1 min', type: 'note' }, ...prev]);
         }}
       />
     </div>

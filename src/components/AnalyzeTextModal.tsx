@@ -11,9 +11,10 @@ type AnalyzeTextModalProps = {
   onClose: () => void;
   files?: UploadedInfo[];
   onAnalyzed?: (file: UploadedInfo) => void;
+  onRemove?: (file: UploadedInfo) => void;
 };
 
-export default function AnalyzeTextModal({ isOpen, onClose, files = [], onAnalyzed }: AnalyzeTextModalProps): JSX.Element | null {
+export default function AnalyzeTextModal({ isOpen, onClose, files = [], onAnalyzed, onRemove }: AnalyzeTextModalProps): JSX.Element | null {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -62,7 +63,16 @@ export default function AnalyzeTextModal({ isOpen, onClose, files = [], onAnalyz
                       <div className="text-slate-200 text-sm">{f.contractName || f.name}</div>
                       <div className="text-slate-500 text-xs">{f.type || 'Sin tipo'} · {(f.size / 1024).toFixed(1)} KB</div>
                     </div>
-                    <div className="h-4 w-4 rounded-full" style={{ backgroundColor: selectedIndex === idx ? 'rgba(79,140,255,0.85)' : 'rgba(148,163,184,0.45)' }} />
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full" style={{ backgroundColor: selectedIndex === idx ? 'rgba(79,140,255,0.85)' : 'rgba(148,163,184,0.45)' }} />
+                      <span
+                        onClick={(e) => { e.stopPropagation(); if (onRemove) onRemove(f); }}
+                        className="px-3 py-1 rounded-full text-xs"
+                        style={{ border: '1px solid rgba(58,123,255,0.28)', color: '#FFFFFF', backgroundColor: 'rgba(20,30,60,0.22)' }}
+                      >
+                        Eliminar
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>

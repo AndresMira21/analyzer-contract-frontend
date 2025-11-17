@@ -34,6 +34,36 @@ export default function ContractsPage(): JSX.Element {
   const [override, setOverride] = useState<any | null>(null);
   const [rowsState, setRowsState] = useState<Contract[]>(data);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('contractsCache');
+      if (raw) {
+        const arr = JSON.parse(raw) as Contract[];
+        setRowsState(prev => {
+          const map = new Map<string, Contract>();
+          [...prev, ...arr].forEach(r => map.set(r.id, r));
+          return Array.from(map.values());
+        });
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'contractsCache' || e.newValue === null) return;
+      try {
+        const arr = JSON.parse(e.newValue) as Contract[];
+        setRowsState(prev => {
+          const map = new Map<string, Contract>();
+          [...prev, ...arr].forEach(r => map.set(r.id, r));
+          return Array.from(map.values());
+        });
+      } catch {}
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const filtered = useMemo(() => {
     let rows = rowsState;
     if (query) rows = rows.filter(r => r.name.toLowerCase().includes(query.toLowerCase()));
@@ -52,7 +82,17 @@ export default function ContractsPage(): JSX.Element {
       };
       const riskText = ac.riskScore >= 80 ? 'Muy alto' : ac.riskScore >= 60 ? 'Alto' : ac.riskScore >= 40 ? 'Medio' : ac.riskScore >= 20 ? 'Bajo' : 'Muy bajo';
       const exists = rowsState.some(r => r.id === ac.id);
-      if (!exists) setRowsState(prev => [...prev, { id: ac.id, name: ac.name, date: ac.uploadedAt, status: ac.status, risk: riskText, score: ac.riskScore }]);
+      if (!exists) {
+        const row = { id: ac.id, name: ac.name, date: ac.uploadedAt, status: ac.status, risk: riskText, score: ac.riskScore } as Contract;
+        setRowsState(prev => [...prev, row]);
+        try {
+          const raw = localStorage.getItem('contractsCache');
+          const arr = raw ? (JSON.parse(raw) as Contract[]) : [];
+          const map = new Map<string, Contract>();
+          [...arr, row].forEach(r => map.set(r.id, r));
+          localStorage.setItem('contractsCache', JSON.stringify(Array.from(map.values())));
+        } catch {}
+      }
       setOverride(ac);
       setSelectedId(ac.id);
       setIsModalOpen(true);
@@ -109,8 +149,8 @@ export default function ContractsPage(): JSX.Element {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row, idx) => (
-                  <motion.tr key={row.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 * idx }} className="border-t border-slate-800/60">
+                        {filtered.map((row, idx) => (
+                          <motion.tr key={row.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 * idx }} className="border-t border-slate-800/60">
                     <td className="px-6 py-4 text-slate-200">{row.name}</td>
                     <td className="px-6 py-4 text-slate-300">{row.date}</td>
                     <td className="px-6 py-4">
@@ -118,9 +158,12 @@ export default function ContractsPage(): JSX.Element {
                     </td>
                     <td className="px-6 py-4 text-slate-200">{row.risk}</td>
                     <td className="px-6 py-4 text-white font-bold">{row.score}</td>
-                    <td className="px-6 py-4">
-                    <Button size="lg" className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={() => { setSelectedId(row.id); setIsModalOpen(true); }}>Ver detalles</Button>
-                  </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <Button size="lg" className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={() => { setSelectedId(row.id); setIsModalOpen(true); }}>Ver detalles</Button>
+                                <Button size="lg" variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={() => { const ok = window.confirm('¿Eliminar este contrato?'); if (!ok) return; setRowsState(prev => prev.filter(r => r.id !== row.id)); try { const raw = localStorage.getItem('contractsCache'); const arr = raw ? (JSON.parse(raw) as Contract[]) : []; const next = arr.filter(r => r.id !== row.id); localStorage.setItem('contractsCache', JSON.stringify(next)); } catch {} if (selectedId === row.id) { setIsModalOpen(false); setSelectedId(null); } }}>Eliminar</Button>
+                              </div>
+                            </td>
                 </motion.tr>
               ))}
             </tbody>

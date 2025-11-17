@@ -14,17 +14,7 @@ export default function DashboardSidebar({ userName, userEmail, onLogout }: Prop
 
   return (
     <aside className="w-72 border-r backdrop-blur-xl" style={{ backgroundColor: 'rgba(20,30,60,0.28)', borderColor: 'rgba(58, 123, 255, 0.18)' }}>
-      <div className="px-6 py-6 space-y-4" style={{ borderBottom: '1px solid rgba(58,123,255,0.18)', backgroundColor: 'rgba(20,30,60,0.22)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full text-white flex items-center justify-center" style={{ backgroundColor: '#3A7BFF' }}>
-            <User className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-white font-semibold">Usuario</div>
-          </div>
-        </div>
-        
-      </div>
+      <div className="px-6 py-6 space-y-4" style={{ borderBottom: '1px solid rgba(58,123,255,0.18)', backgroundColor: 'rgba(20,30,60,0.22)' }} />
 
       <nav className="px-4 py-6 space-y-1">
         <NavLink to="/dashboard" end className={({ isActive }) => `${linkBase} ${isActive ? activeBase : ''}`} style={({ isActive }) => ({ borderLeft: isActive ? '2px solid #3A7BFF' : '2px solid transparent', backgroundColor: isActive ? 'rgba(58,123,255,0.12)' : 'transparent' })}>

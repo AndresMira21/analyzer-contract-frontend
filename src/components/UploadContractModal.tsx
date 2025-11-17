@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import Input from './ui/input';
+import { useNavigate } from 'react-router-dom';
 
 type UploadedInfo = { name: string; type: string; size: number; contractName?: string };
 type UploadContractModalProps = {
@@ -15,12 +16,16 @@ type UploadContractModalProps = {
 
 export default function UploadContractModal({ isOpen, onClose, onUploaded }: UploadContractModalProps): JSX.Element | null {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const navigate = useNavigate();
   const [fileName, setFileName] = useState('');
   const [contractName, setContractName] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [fileError, setFileError] = useState('');
+  const [result, setResult] = useState<{ type: string; clauses: string[]; risks: string[]; riskScore: number; recommendations: string[]; summary: string } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,11 +57,27 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="text-white text-sm">Selecciona un archivo</div>
-                  <input ref={inputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => { const f = e.target.files?.[0] ?? null; setSelectedFile(f); setFileName(f ? f.name : ''); setError(''); setSuccess(''); }} />
+                  <input ref={inputRef} type="file" accept=".pdf,.doc,.docx" multiple className="hidden" onChange={e => { const list = Array.from(e.target.files ?? []); setError(''); setSuccess(''); setResult(null); setProgress(0); if (list.length === 0) { setSelectedFiles([]); setFileName(''); setFileError(''); return; } const max = 10 * 1024 * 1024; const valid: File[] = []; let err = ''; for (const f of list) { const name = f.name; const size = f.size; const extOk = (/\.pdf$/i.test(name) || /\.docx$/i.test(name) || /\.doc$/i.test(name)); if (!extOk) { err = 'Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.'; continue; } if (size > max) { err = 'El archivo excede el tamaño máximo permitido de 10 MB.'; continue; } valid.push(f); } setSelectedFiles(prev => [...prev, ...valid]); setFileName(valid.length > 1 || selectedFiles.length > 0 ? `${valid.length + selectedFiles.length} archivos seleccionados` : (valid[0]?.name ?? '')); setFileError(err); }} />
                   <div className="flex items-center gap-3">
                     <Button className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={() => inputRef.current?.click()}>Elegir archivo</Button>
                     <div className="text-slate-300 text-sm">{fileName || 'Ningún archivo seleccionado'}</div>
                   </div>
+                  <div className="text-slate-400 text-xs">Formatos permitidos: PDF (.pdf), Word (.docx), Word 97–2003 (.doc). Tamaño máximo: 10 MB.</div>
+                  {fileError && (
+                    <div className="text-red-400 text-sm">{fileError}</div>
+                  )}
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {selectedFiles.map((f, i) => (
+                        <div key={f.name + i} className="flex items-center justify-between px-4 py-2 rounded-xl border" style={{ borderColor: 'rgba(58,123,255,0.24)', backgroundColor: 'rgba(20,30,60,0.22)' }}>
+                          <div className="text-slate-300 text-sm">{f.name}</div>
+                          <button className="px-3 py-1 rounded-full text-xs" style={{ border: '1px solid rgba(58,123,255,0.28)', color: '#FFFFFF', backgroundColor: 'rgba(20,30,60,0.22)' }} onClick={() => { setSelectedFiles(prev => prev.filter((x, idx) => idx !== i)); const nextCount = selectedFiles.length - 1; setFileName(nextCount > 1 ? `${nextCount} archivos seleccionados` : nextCount === 1 ? selectedFiles.filter((_, idx) => idx !== i)[0]?.name ?? '' : ''); if (nextCount === 0) setFileError(''); }}>
+                            Eliminar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <div className="text-white text-sm">Nombre del contrato (opcional)</div>
@@ -65,15 +86,71 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
               </div>
             </Card>
             <div className="flex items-center justify-end gap-3">
-              <Button className="text-white" style={{ backgroundColor: '#3A7BFF' }} disabled={uploading} onClick={() => { if (!selectedFile) { setError('Selecciona un archivo válido'); return; } setError(''); setSuccess(''); setUploading(true); setTimeout(() => { setUploading(false); setSuccess('Contrato subido correctamente'); setTimeout(() => { setSuccess(''); if (onUploaded) onUploaded({ name: selectedFile.name, type: selectedFile.type, size: selectedFile.size, contractName }); onClose(); }, 900); }, 1200); }}>
-                {uploading ? 'Subiendo…' : 'Subir contrato'}
+              <Button className="text-white" style={{ backgroundColor: '#3A7BFF' }} disabled={uploading} onClick={async () => {
+                if (fileError) { return; }
+                if (selectedFiles.length === 0) { setError('Archivo obligatorio'); return; }
+                const token = localStorage.getItem('authToken') || '';
+                if (!token) { setError('Sin token'); return; }
+                setError('');
+                setSuccess('');
+                setResult(null);
+                setUploading(true);
+                setProgress(0);
+                const t = setInterval(() => { setProgress(p => Math.min(100, p + 12)); }, 180);
+                setTimeout(() => {
+                  clearInterval(t);
+                  setUploading(false);
+                  setProgress(100);
+                  selectedFiles.forEach(f => {
+                    if (onUploaded) onUploaded({ name: f.name, type: f.type, size: f.size, contractName });
+                  });
+                  setSelectedFiles([]);
+                  setFileName('');
+                  onClose();
+                }, 900);
+              }}>
+                {uploading ? 'Analizando…' : 'Subir contrato'}
               </Button>
             </div>
+            {uploading && (
+              <div className="mt-2 w-full h-2 bg-slate-800/60 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500" style={{ width: `${progress}%`, transition: 'width 180ms ease' }} />
+              </div>
+            )}
             {(error || success) && (
               <div className="px-6 pb-2">
                 {error && <div className="text-red-400 text-sm">{error}</div>}
                 {success && <div className="text-green-400 text-sm">{success}</div>}
               </div>
+            )}
+            {result && (
+              <Card className="p-6" style={{ borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)' }}>
+                <div className="text-white text-xl font-semibold mb-3">Resultado del análisis</div>
+                <div className="text-slate-300 mb-2">Tipo de contrato: {result.type}</div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-white font-semibold mb-2">Cláusulas clave</div>
+                    <ul className="space-y-1">{result.clauses.map(c => <li key={c} className="text-slate-300">{c}</li>)}</ul>
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold mb-2">Riesgos</div>
+                    <ul className="space-y-1">{result.risks.map(r => <li key={r} className="text-slate-300">{r}</li>)}</ul>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-3">
+                  <span className="px-4 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: result.riskScore >= 70 ? 'rgba(239,68,68,0.15)' : result.riskScore >= 40 ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)', color: result.riskScore >= 70 ? '#EF4444' : result.riskScore >= 40 ? '#EAB308' : '#22C55E' }}>Puntaje de riesgo: {result.riskScore}</span>
+                </div>
+                <div className="mt-4 grid md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-white font-semibold mb-2">Recomendaciones</div>
+                    <ul className="space-y-1">{result.recommendations.map(r => <li key={r} className="text-slate-300">{r}</li>)}</ul>
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold mb-2">Resumen</div>
+                    <div className="text-slate-300">{result.summary}</div>
+                  </div>
+                </div>
+              </Card>
             )}
           </div>
         </div>

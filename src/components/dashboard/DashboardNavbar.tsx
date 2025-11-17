@@ -13,10 +13,6 @@ export default function DashboardNavbar({ userName }: Props): JSX.Element {
           <Bell className="h-5 w-5" color="#3A7BFF" />
           <span className="absolute -top-1 -right-2 inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#3A7BFF' }} />
         </button>
-        <div className="flex items-center gap-2 text-slate-200">
-          <UserCircle className="h-7 w-7" color="#3A7BFF" />
-          <span className="font-medium">{userName}</span>
-        </div>
       </div>
     </header>
   );
