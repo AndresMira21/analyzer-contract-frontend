@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, FileText, Upload, Brain, Settings, LogOut, User, Folder, Layers, Trash2, Globe, Bell } from 'lucide-react';
+import { Home, FileText, Upload, Brain, Settings, LogOut, User, Trash2 } from 'lucide-react';
 
 type Props = {
   userName: string;
@@ -44,14 +44,10 @@ export default function DashboardSidebar({ userName, userEmail, onLogout }: Prop
       </nav>
 
       <div className="mt-auto px-4 py-6 space-y-3" style={{ borderTop: '1px solid rgba(58,123,255,0.18)' }}>
-        <div className="flex items-center gap-3 px-3 py-3 rounded-xl" style={{ backgroundColor: 'rgba(20,30,60,0.22)' }}>
-          <Globe className="h-5 w-5" color="#3A7BFF" />
-          <span className="text-slate-300">Profile</span>
-        </div>
-        <div className="flex items-center gap-3 px-3 py-3 rounded-xl" style={{ backgroundColor: 'rgba(20,30,60,0.22)' }}>
+        <NavLink to="/dashboard/recently-deleted" className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl ${isActive ? 'text-white' : 'text-slate-300'}`} style={({ isActive }) => ({ backgroundColor: isActive ? 'rgba(58,123,255,0.12)' : 'rgba(20,30,60,0.22)' })}>
           <Trash2 className="h-5 w-5" color="#3A7BFF" />
-          <span className="text-slate-300">Recently Deleted</span>
-        </div>
+          <span className="text-slate-300">Recientemente Eliminados</span>
+        </NavLink>
         <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white transition-all" style={{ backgroundColor: 'rgba(20,30,60,0.35)' }}>
           <LogOut className="h-5 w-5" color="#3A7BFF" />
           <span>Logout</span>

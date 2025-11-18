@@ -11,10 +11,12 @@ type AuthContextValue = {
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (name?: string, email?: string) => void;
 };
 
 const SESSION_KEY = 'auth:session';
 const REGISTERED_KEY = 'auth:registeredUser';
+const HISTORY_KEY = 'auth:sessions_history';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -52,6 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const session: AuthUser = { email, name };
     window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    try {
+      const rawHist = window.localStorage.getItem(HISTORY_KEY);
+      const hist = rawHist ? JSON.parse(rawHist) as { email: string; name?: string; ts: string }[] : [];
+      const entry = { email, name, ts: new Date().toISOString() };
+      const nextHist = [entry, ...hist].slice(0, 10);
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHist));
+    } catch {}
     setUser(session);
   };
 
@@ -65,6 +74,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const updateProfile = (name?: string, email?: string) => {
+    const next: AuthUser = { name: name ?? user?.name, email: email ?? user?.email ?? '' };
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+    try {
+      const rawHist = window.localStorage.getItem(HISTORY_KEY);
+      const hist = rawHist ? JSON.parse(rawHist) as { email: string; name?: string; ts: string }[] : [];
+      const entry = { email: next.email, name: next.name, ts: new Date().toISOString() };
+      const nextHist = [entry, ...hist].slice(0, 10);
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHist));
+    } catch {}
+    setUser(next);
+  };
+
   const isAuthenticated = useCallback(() => {
     if (user) return true;
     try {
@@ -74,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, isAuthenticated }), [user, isAuthenticated]);
+  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated }), [user, isAuthenticated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import type { JSX } from "react";
 import { HomePage } from "./components/Home";
-import Dashboard from "./components/Dashboard";
 import { useAuth } from "./context/AuthContext";
 import { LoginForm } from "./components/Login";
 import { motion } from "motion/react";
@@ -18,14 +17,6 @@ function App(): JSX.Element | null {
   const [screen, setScreen] = useState<Screen>("home");
   const location = useLocation();
   const navigate = useNavigate();
-
-  // hooks must run unconditionally before any early returns
-
-  useEffect(() => {
-    if (isAuthenticated()) {
-      setScreen("dashboard");
-    }
-  }, [isAuthenticated]);
 
   useEffect(() => {
     const path = location.pathname.toLowerCase();
@@ -55,19 +46,7 @@ function App(): JSX.Element | null {
 
   switch (screen) {
     case "dashboard":
-      return (
-        <div className="relative">
-          <div className="absolute top-4 right-4 z-10">
-            <button
-              className="px-4 py-2 bg-slate-800 text-white rounded-lg border border-slate-700 hover:bg-slate-700"
-              onClick={() => { logout(); goHome(); }}
-            >
-              Cerrar sesión
-            </button>
-          </div>
-          <Dashboard />
-        </div>
-      );
+      return null;
     case "login":
     case "register": {
       const mode = screen;

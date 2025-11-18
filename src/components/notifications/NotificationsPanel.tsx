@@ -47,6 +47,44 @@ export function NotificationsPanel() {
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const lastIdRef = useRef<string>('');
+  const pushEnabledRef = useRef<boolean>(false);
+
+  const refreshPushPref = () => {
+    try {
+      const raw = window.localStorage.getItem('user:prefs:notifications');
+      if (raw) {
+        const prefs = JSON.parse(raw) as { push?: boolean };
+        pushEnabledRef.current = !!prefs.push;
+      } else {
+        pushEnabledRef.current = false;
+      }
+    } catch {
+      pushEnabledRef.current = false;
+    }
+  };
+
+  const tryShowBrowserNotification = (n: ContractNotification) => {
+    if (!pushEnabledRef.current) return;
+    if (!('Notification' in window)) return;
+    const title = n.titulo || 'Notificación';
+    const body = n.mensaje || '';
+    const icon = undefined;
+    const openLink = () => { if (n.link) window.open(n.link, '_blank'); };
+    if (Notification.permission === 'granted') {
+      const noti = new Notification(title, { body, icon });
+      noti.onclick = openLink;
+      return;
+    }
+    if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((perm) => {
+        if (perm === 'granted') {
+          const noti = new Notification(title, { body, icon });
+          noti.onclick = openLink;
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -72,12 +110,14 @@ export function NotificationsPanel() {
 
   useEffect(() => {
     setNotifications(loadContractNotifications());
+    refreshPushPref();
   }, []);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== 'contractsCache' || e.newValue === null) return;
       setNotifications(loadContractNotifications());
+      refreshPushPref();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -93,7 +133,13 @@ export function NotificationsPanel() {
       const map = new Map(list.map((n) => [n.id, n] as const));
       const prev = map.get(item.id) || null;
       map.set(item.id, { ...(prev || {} as ContractNotification), ...item });
-      return Array.from(map.values()).sort((a, b) => b.fecha.localeCompare(a.fecha));
+      const next = Array.from(map.values()).sort((a, b) => b.fecha.localeCompare(a.fecha));
+      const newest = next[0];
+      if (newest && newest.id !== lastIdRef.current) {
+        lastIdRef.current = newest.id;
+        if (newest.estado === 'no_leida') tryShowBrowserNotification(newest);
+      }
+      return next;
     };
 
     const parse = (raw: any): ContractNotification | null => {
@@ -118,6 +164,7 @@ export function NotificationsPanel() {
             const item = parse(data);
             if (!item) return;
             setNotifications((prev) => upsert(prev, item));
+            refreshPushPref();
           } catch {}
         };
       } catch {}
@@ -130,6 +177,7 @@ export function NotificationsPanel() {
             const item = parse(data);
             if (!item) return;
             setNotifications((prev) => upsert(prev, item));
+            refreshPushPref();
           } catch {}
         };
       } catch {}

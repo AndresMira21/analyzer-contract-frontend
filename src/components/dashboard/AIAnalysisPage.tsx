@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { Card } from '../ui/card';
 import { useLocation } from 'react-router-dom';
 import { Button } from '../ui/button';
@@ -12,6 +13,7 @@ type ChatMessage = {
   text: string;
   date: string;
   type: 'question' | 'answer';
+  pinned?: boolean;
 };
 
 export default function AIAnalysisPage(): JSX.Element {
@@ -26,11 +28,42 @@ export default function AIAnalysisPage(): JSX.Element {
   const isMountedRef = useRef(true);
   const listRef = useRef<HTMLDivElement | null>(null);
   const pendingMsgRef = useRef<ChatMessage | null>(null);
+  const atBottomRef = useRef(true);
+  const [newAiCount, setNewAiCount] = useState(0);
   const [suggestions, setSuggestions] = useState<string[]>([
     'Solicitar resumen del contrato',
     'Identificar riesgos potenciales',
     'Extraer cláusulas clave',
   ]);
+
+  const escapeHtml = (s: string) => s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const mdToHtml = (s: string) => {
+    let t = escapeHtml(s);
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    t = t.replace(/`([^`]+?)`/g, '<code>$1</code>');
+    t = t.replace(/\[(.+?)\]\((https?:[^\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    const lines = t.split(/\r?\n/);
+    const out: string[] = [];
+    let inList = false;
+    for (const line of lines) {
+      if (/^\s*\-\s+/.test(line)) {
+        if (!inList) { out.push('<ul>'); inList = true; }
+        out.push('<li>' + line.replace(/^\s*\-\s+/, '') + '</li>');
+      } else {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push('<p>' + line + '</p>');
+      }
+    }
+    if (inList) out.push('</ul>');
+    return out.join('');
+  };
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -58,6 +91,7 @@ export default function AIAnalysisPage(): JSX.Element {
             const msg: ChatMessage = { id: `${Date.now()}-stream`, author: 'ai', text: '', date: new Date().toISOString(), type: 'answer' };
             pendingMsgRef.current = msg;
             setMessages((prev) => [...prev, msg]);
+            if (!atBottomRef.current) setNewAiCount((c) => c + 1);
           }
           const add = String(data.delta);
           pendingMsgRef.current.text += add;
@@ -77,6 +111,7 @@ export default function AIAnalysisPage(): JSX.Element {
         if (text) {
           const msg: ChatMessage = { id: `${Date.now()}`, author: 'ai', text: String(text), date: new Date().toISOString(), type: 'answer' };
           setMessages((prev) => [...prev, msg]);
+          if (!atBottomRef.current) setNewAiCount((c) => c + 1);
           setTyping(false);
         }
       } catch {}
@@ -141,6 +176,7 @@ export default function AIAnalysisPage(): JSX.Element {
         setTyping(false);
         const msg: ChatMessage = { id: `${Date.now()}-ctx`, author: 'ai', text: `Contexto de contrato cargado: ${state.contractName ?? ''}`.trim(), date: new Date().toISOString(), type: 'answer' };
         setMessages((prev) => [...prev, msg]);
+        if (!atBottomRef.current) setNewAiCount((c) => c + 1);
         return;
       }
       const details = await fetchDetails();
@@ -148,6 +184,7 @@ export default function AIAnalysisPage(): JSX.Element {
         const tx = `Contexto cargado: ${details.name}. Puedes preguntar sobre cláusulas, riesgos y recomendaciones.`;
         const msg: ChatMessage = { id: `${Date.now()}-ctx2`, author: 'ai', text: tx, date: new Date().toISOString(), type: 'answer' };
         setMessages((prev) => [...prev, msg]);
+        if (!atBottomRef.current) setNewAiCount((c) => c + 1);
       }
       setTyping(false);
     })();
@@ -178,6 +215,7 @@ export default function AIAnalysisPage(): JSX.Element {
       const aiText = state.contractName ? `Análisis del contrato ${state.contractName}: se recomienda revisar cláusulas de confidencialidad, penalidades y vigencia.` : 'Tu solicitud está siendo procesada. Proporciona el contrato para respuestas específicas.';
       const aiMsg: ChatMessage = { id: `${Date.now()}-a`, author: 'ai', text: aiText, date: new Date().toISOString(), type: 'answer' };
       setMessages((prev) => [...prev, aiMsg]);
+      if (!atBottomRef.current) setNewAiCount((c) => c + 1);
       setTyping(false);
     }, 900);
   };
@@ -185,7 +223,21 @@ export default function AIAnalysisPage(): JSX.Element {
   useEffect(() => {
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
+    atBottomRef.current = true;
+    setNewAiCount(0);
   }, [messages]);
+
+  const handleScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+    atBottomRef.current = atBottom;
+    if (atBottom) setNewAiCount(0);
+  };
+
+  const togglePin = (id: string) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, pinned: !m.pinned } : m)));
+  };
 
   
 
@@ -194,15 +246,30 @@ export default function AIAnalysisPage(): JSX.Element {
       <h2 className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight">{title}</h2>
       <Card className="p-6 backdrop-blur transition-all" style={{ backgroundColor: 'rgba(20,30,60,0.32)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }}>
         <div className="space-y-4">
-          <div ref={listRef} className="space-y-3 max-h-[52vh] overflow-y-auto pr-2">
-            {messages.map((m) => (
-              <div key={m.id} className="flex flex-col">
-                <div className="text-sm text-slate-400">{m.author === 'user' ? 'Usuario' : 'IA'} • {new Date(m.date).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</div>
-                <div className={`${m.author === 'user' ? 'bg-slate-800/60 text-slate-200' : 'bg-slate-900/60 text-slate-100'} px-4 py-3 rounded-xl border`} style={{ borderColor: 'rgba(58,123,255,0.18)' }}>{m.text}</div>
-              </div>
-            ))}
+          <div ref={listRef} onScroll={handleScroll} className="relative space-y-3 max-h-[52vh] overflow-y-auto pr-2">
+            {[...messages.filter(m => m.pinned === true), ...messages.filter(m => !m.pinned)].map((m) => {
+              const bubbleClass = m.author === 'user' ? 'bg-slate-800/60 text-slate-200' : 'bg-slate-900/60 text-slate-100';
+              return (
+                <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col">
+                  <div className="text-sm text-slate-400">{m.author === 'user' ? 'Usuario' : 'IA'} • {new Date(m.date).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</div>
+                  {m.author === 'ai' ? (
+                    <div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={{ borderColor: 'rgba(58,123,255,0.18)' }} dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
+                  ) : (
+                    <div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={{ borderColor: 'rgba(58,123,255,0.18)' }}>{m.text}</div>
+                  )}
+                  <div className="mt-2">
+                    <Button variant="outline" className="text-white" onClick={() => togglePin(m.id)}>{m.pinned ? 'Quitar fijado' : 'Fijar'}</Button>
+                  </div>
+                </motion.div>
+              );
+            })}
             {typing && (
-              <div className="text-slate-400 text-sm">IA escribiendo...</div>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="text-slate-400 text-sm">IA escribiendo...</motion.div>
+            )}
+            {newAiCount > 0 && (
+              <div className="absolute bottom-2 right-2">
+                <Button variant="outline" className="text-white" onClick={() => { if (listRef.current) { listRef.current.scrollTop = listRef.current.scrollHeight; } setNewAiCount(0); }}>Nuevo(s) {newAiCount}</Button>
+              </div>
             )}
           </div>
 
