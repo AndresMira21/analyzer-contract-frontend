@@ -14,11 +14,11 @@ export default function DashboardRoutes(): JSX.Element {
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<DashboardHome />} />
         <Route path="contracts" element={<ContractsPage />} />
+        <Route path="contracts/:id" element={<ContractDetails />} />
         <Route path="upload" element={<UploadContractPage />} />
         <Route path="ai" element={<AIAnalysisPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
-      <Route path="/contracts/:id" element={<ContractDetails />} />
     </Routes>
   );
 }
