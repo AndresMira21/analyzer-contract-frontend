@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { Bell, AlertTriangle, Info, CheckCircle, X, Check, FileText } from 'lucide-react';
 
 type Tipo = 'nuevo_contrato' | 'contrato_actualizado' | 'recordatorio_vencimiento';
@@ -276,17 +277,23 @@ export function NotificationsPanel() {
       </button>
 
       {/* Notifications Panel */}
-      {isOpen && pos && createPortal(
-        <div
-          ref={panelRef}
-          className="fixed z-[1100] w-[420px] bg-[#0F172A] border border-[#1E293B] rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-          style={{
-            top: pos.top,
-            left: pos.left,
-            boxShadow: '0 8px 22px rgba(0, 0, 0, 0.45)',
-            maxHeight: '520px',
-          }}
-        >
+      {pos && createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={panelRef}
+              className="fixed z-[1100] w-[420px] bg-[#0F172A] border border-[#1E293B] rounded-2xl overflow-hidden"
+              style={{
+                top: pos.top,
+                left: pos.left,
+                boxShadow: '0 8px 22px rgba(0, 0, 0, 0.45)',
+                maxHeight: '520px',
+              }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22 }}
+            >
           {/* Header */}
           <div className="p-4 border-b border-[#1E293B] bg-[#0F172A]">
             <h3 className="text-slate-100 mb-3">Notificaciones</h3>
@@ -312,7 +319,6 @@ export function NotificationsPanel() {
             </div>
           </div>
 
-          {/* Notifications List */}
           <div className="overflow-y-auto" style={{ maxHeight: '400px', backgroundColor: '#0F172A' }}>
             {notifications.length === 0 ? (
               <div className="p-8 text-center text-slate-400">
@@ -322,9 +328,13 @@ export function NotificationsPanel() {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 border-b border-[#1E293B] hover:bg-slate-800 transition-colors ${
+                  className={`p-4 border-b border-[#1E293B] transition-colors ${
                     notification.estado === 'no_leida' ? 'bg-slate-800' : 'bg-[#0F172A]'
                   }`}
+                  style={{
+                    boxShadow: notification.estado === 'no_leida' ? '0 10px 28px rgba(58,123,255,0.10)' : 'none',
+                    borderLeft: notification.estado === 'no_leida' ? '3px solid rgba(58,123,255,0.45)' : '3px solid transparent'
+                  }}
                 >
                   <div className="flex gap-3">
                     <div className="flex-shrink-0 mt-0.5">{getIcon(notification.tipo)}</div>
@@ -363,7 +373,9 @@ export function NotificationsPanel() {
               ))
             )}
           </div>
-        </div>,
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
     </div>

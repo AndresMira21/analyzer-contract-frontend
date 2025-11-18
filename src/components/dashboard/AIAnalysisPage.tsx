@@ -249,13 +249,14 @@ export default function AIAnalysisPage(): JSX.Element {
           <div ref={listRef} onScroll={handleScroll} className="relative space-y-3 max-h-[52vh] overflow-y-auto pr-2">
             {[...messages.filter(m => m.pinned === true), ...messages.filter(m => !m.pinned)].map((m) => {
               const bubbleClass = m.author === 'user' ? 'bg-slate-800/60 text-slate-200' : 'bg-slate-900/60 text-slate-100';
+              const aiStyle = m.author === 'ai' ? { boxShadow: '0 12px 28px rgba(58,123,255,0.10)', borderColor: 'rgba(58,123,255,0.22)' } : { borderColor: 'rgba(58,123,255,0.18)' };
               return (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col">
                   <div className="text-sm text-slate-400">{m.author === 'user' ? 'Usuario' : 'IA'} • {new Date(m.date).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</div>
                   {m.author === 'ai' ? (
-                    <div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={{ borderColor: 'rgba(58,123,255,0.18)' }} dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
+                    <motion.div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={aiStyle} initial={{ opacity: 0.6, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
                   ) : (
-                    <div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={{ borderColor: 'rgba(58,123,255,0.18)' }}>{m.text}</div>
+                    <div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={aiStyle}>{m.text}</div>
                   )}
                   <div className="mt-2">
                     <Button variant="outline" className="text-white" onClick={() => togglePin(m.id)}>{m.pinned ? 'Quitar fijado' : 'Fijar'}</Button>
@@ -264,7 +265,14 @@ export default function AIAnalysisPage(): JSX.Element {
               );
             })}
             {typing && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="text-slate-400 text-sm">IA escribiendo...</motion.div>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="flex items-center gap-2 text-slate-400 text-sm">
+                <span>IA escribiendo</span>
+                <div className="flex items-center gap-1">
+                  <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2 }} />
+                  <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.2 }} />
+                  <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.4 }} />
+                </div>
+              </motion.div>
             )}
             {newAiCount > 0 && (
               <div className="absolute bottom-2 right-2">

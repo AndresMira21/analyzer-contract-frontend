@@ -191,8 +191,8 @@ export default function ContractsPage(): JSX.Element {
         </select>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <Card className="p-0 overflow-hidden" style={{ borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)' }}>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} whileHover={{ y: -2 }}>
+        <Card className="p-0 overflow-hidden rounded-2xl transition-all" style={{ borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }}>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
               <thead>
@@ -207,10 +207,10 @@ export default function ContractsPage(): JSX.Element {
               </thead>
               <tbody>
                         {filtered.map((row, idx) => (
-                          <motion.tr key={row.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 * idx }} className="border-t border-slate-800/60">
-                    <td className="px-6 py-4 text-slate-200">{row.name}</td>
-                    <td className="px-6 py-4 text-slate-300">{row.date}</td>
-                    <td className="px-6 py-4">
+                          <motion.tr key={row.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.35, delay: 0.05 * idx }} className="border-t border-slate-800/60 hover:bg-slate-800/40">
+                            <td className="px-6 py-4 text-slate-200">{row.name}</td>
+                            <td className="px-6 py-4 text-slate-300">{row.date}</td>
+                            <td className="px-6 py-4">
                       <span className="px-3 py-1 rounded-full text-sm" style={{ backgroundColor: row.status === 'Aprobado' ? 'rgba(34,197,94,0.15)' : row.status === 'Riesgo alto' ? 'rgba(239,68,68,0.15)' : 'rgba(58,123,255,0.12)', color: row.status === 'Aprobado' ? '#22C55E' : row.status === 'Riesgo alto' ? '#EF4444' : '#3A7BFF' }}>{row.status}</span>
                     </td>
                     <td className="px-6 py-4 text-slate-200">{row.risk}</td>

@@ -102,6 +102,8 @@ export default function DashboardHome(): JSX.Element {
     return () => { isMountedRef.current = false; };
   }, []);
 
+  
+
   const loadContractsCount = () => {
     try {
       const raw = window.localStorage.getItem('contractsCache');
@@ -218,21 +220,43 @@ export default function DashboardHome(): JSX.Element {
         <motion.h1
           className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight"
           style={{ backgroundSize: '200% auto' }}
-          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+          initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)', backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+          transition={{ duration: 0.8, backgroundPosition: { duration: 8, repeat: Infinity, ease: 'linear' } }}
         >
           Hola, {name} 👋
         </motion.h1>
+        <motion.div
+          className="h-1 w-16 mt-2 bg-gradient-to-r from-blue-500 via-slate-400 to-blue-500 rounded-full"
+          animate={{ opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
         
         <div className="relative min-h-[68vh] flex flex-col items-center justify-center pt-6">
-          <motion.h2
-            className="text-4xl md:text-6xl lg:text-7xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight mt-4 mb-6"
-            style={{ backgroundSize: '200% auto' }}
-            animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-          >
-            Bienvenid@ a LegalConnect
-          </motion.h2>
+          <div className="relative">
+            <motion.span
+              className="absolute inset-0 -z-10 rounded-2xl"
+              style={{ background: 'radial-gradient(220px 120px at 50% 50%, rgba(58,123,255,0.22), rgba(58,123,255,0))' }}
+              initial={{ opacity: 0.6, scale: 0.98 }}
+              animate={{ opacity: [0.6, 0.25, 0.6], scale: [0.98, 1.02, 0.98] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.h2
+              className="text-5xl md:text-6xl bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent mb-4 tracking-tight font-bold leading-tight"
+              style={{ backgroundSize: '200% auto' }}
+              initial={{ opacity: 0, y: 8, filter: 'blur(2px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)', backgroundPosition: ['0%', '100%', '0%'] }}
+              transition={{ duration: 0.8, backgroundPosition: { duration: 8, repeat: Infinity, ease: 'linear' } }}
+              whileHover={{ scale: 1.02 }}
+            >
+              Bienvenid@ a LegalConnect
+            </motion.h2>
+            <motion.div
+              className="h-1 w-24 mx-auto bg-gradient-to-r from-blue-500 via-slate-400 to-blue-500 rounded-full"
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
           <div className="flex justify-center mb-6">
             <div className="w-[280px] md:w-[340px]">
               <Lottie animationData={robotAnimation} loop autoplay />
@@ -292,7 +316,13 @@ export default function DashboardHome(): JSX.Element {
 
       <motion.div initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5 }}>
         <Card className="p-7 max-w-5xl mx-auto" style={{ backgroundColor: 'rgba(20,30,60,0.32)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }}>
-          <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">Actividad reciente</h2>
+          <motion.h2
+            className="text-3xl md:text-4xl bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight font-bold"
+            animate={{ backgroundPosition: ['0%', '100%', '0%'] }}
+            style={{ backgroundSize: '200% auto' }}
+          >
+            Actividad reciente
+          </motion.h2>
           <div className="mt-4 space-y-4">
             {activity.map((ev, idx) => (
               <motion.div key={ev.id} className="flex items-center justify-between gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * idx, duration: 0.4 }} whileHover={{ y: -2 }}>
