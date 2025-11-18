@@ -340,7 +340,7 @@ export default function DashboardHome(): JSX.Element {
         </Card>
       </motion.div>
 
-      <UploadContractModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUploaded={(file) => { setUploadedFiles(prev => [...prev, file]); setActivity(prev => [{ id: `EV-${Date.now()}`, title: `Contrato subido: ${file.contractName || file.name}`, ts: 'Hace 1 min', type: 'note' }, ...prev]); setIsAnalyzeOpen(true); }} />
+      <UploadContractModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUploaded={(file) => { setUploadedFiles(prev => [...prev, file]); setActivity(prev => [{ id: `EV-${Date.now()}`, title: `Contrato subido: ${file.contractName || file.name}`, ts: 'Hace 1 min', type: 'note' }, ...prev]); navigate('/dashboard/contracts'); }} />
       <AnalyzeTextModal
         isOpen={isAnalyzeOpen}
         onClose={() => setIsAnalyzeOpen(false)}

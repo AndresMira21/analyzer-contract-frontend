@@ -18,7 +18,7 @@ export default function DashboardLayout(): JSX.Element {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   useEffect(() => {
@@ -46,6 +46,12 @@ export default function DashboardLayout(): JSX.Element {
     const t = window.setTimeout(() => setMinDelayPassed(true), 3000);
     return () => { active = false; window.clearTimeout(t); };
   }, []);
+
+  useEffect(() => {
+    const onPop = () => { navigate('/dashboard', { replace: true }); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-blue-950 text-white relative">

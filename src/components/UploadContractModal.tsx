@@ -89,24 +89,64 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                 if (fileError) { return; }
                 if (selectedFiles.length === 0) { setError('Archivo obligatorio'); return; }
                 const token = localStorage.getItem('authToken') || '';
-                if (!token) { setError('Sin token'); return; }
                 setError('');
                 setSuccess('');
                 setResult(null);
                 setUploading(true);
                 setProgress(0);
-                const t = setInterval(() => { setProgress(p => Math.min(100, p + 12)); }, 180);
-                setTimeout(() => {
-                  clearInterval(t);
-                  setUploading(false);
+                const uploadUrl = (process.env.REACT_APP_CONTRACTS_UPLOAD as string | undefined) || '';
+                try {
+                  for (const f of selectedFiles) {
+                    const fd = new FormData();
+                    fd.append('file', f);
+                    if (contractName) fd.append('name', contractName);
+                    const res = await fetch(uploadUrl, {
+                      method: 'POST',
+                      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                      body: fd,
+                      credentials: 'include',
+                    });
+                    if (!res.ok) {
+                      const msg = await res.text().catch(() => 'Error al subir contrato');
+                      throw new Error(msg);
+                    }
+                    try {
+                      const data = await res.json();
+                      const analysis = data?.analysis;
+                      const cid = String(data?.contractId || `AC-${Date.now()}`);
+                      const analyzed = analysis ? {
+                        id: cid,
+                        name: contractName || f.name,
+                        uploadedAt: new Date().toISOString().slice(0, 10),
+                        status: 'En revisión',
+                        riskScore: Number(analysis.riskScore || 0),
+                        clauses: Array.isArray(analysis.keyClauses) ? analysis.keyClauses.map(String) : [],
+                        risks: Array.isArray(analysis.risks) ? analysis.risks.map(String) : [],
+                        recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations.map(String) : [],
+                        summary: analysis.summary ? String(analysis.summary) : undefined,
+                      } : null;
+                      if (analyzed) {
+                        try {
+                          const raw = localStorage.getItem('contractsCache');
+                          const arr = raw ? JSON.parse(raw) : [];
+                          const map = new Map<string, any>();
+                          [...arr, { id: analyzed.id, name: analyzed.name, date: analyzed.uploadedAt, status: analyzed.status, risk: analyzed.riskScore >= 80 ? 'Muy alto' : analyzed.riskScore >= 60 ? 'Alto' : analyzed.riskScore >= 40 ? 'Medio' : analyzed.riskScore >= 20 ? 'Bajo' : 'Muy bajo', score: analyzed.riskScore }].forEach((r: any) => map.set(r.id, r));
+                          localStorage.setItem('contractsCache', JSON.stringify(Array.from(map.values())));
+                        } catch {}
+                      }
+                    } catch {}
+                  }
                   setProgress(100);
-                  selectedFiles.forEach(f => {
-                    if (onUploaded) onUploaded({ name: f.name, type: f.type, size: f.size, contractName });
-                  });
+                  selectedFiles.forEach(f => { if (onUploaded) onUploaded({ name: f.name, type: f.type, size: f.size, contractName }); });
+                  setSuccess('Contrato subido correctamente');
                   setSelectedFiles([]);
                   setFileName('');
-                  onClose();
-                }, 900);
+                  setTimeout(() => { onClose(); }, 600);
+                } catch (e: any) {
+                  setError(e?.message || 'Error al subir contrato');
+                } finally {
+                  setUploading(false);
+                }
               }}>
                 {uploading ? 'Analizando…' : 'Subir contrato'}
               </Button>

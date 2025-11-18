@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
+import ProtectedRoute from './ProtectedRoute';
 import DashboardHome from '../components/dashboard/DashboardHome';
 import ContractsPage from '../components/dashboard/ContractsPage';
 import UploadContractPage from '../components/dashboard/UploadContractPage';
@@ -12,7 +13,7 @@ import ContractDetails from '../components/ContractDetails';
 export default function DashboardRoutes(): JSX.Element {
   return (
     <Routes>
-      <Route path="/dashboard" element={<DashboardLayout />}>
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardHome />} />
         <Route path="contracts" element={<ContractsPage />} />
         <Route path="contracts/:id" element={<ContractDetails />} />

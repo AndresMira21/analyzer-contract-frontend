@@ -42,30 +42,49 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     e.preventDefault();
     const nextErrors: { name?: string; email?: string; password?: string; confirmPassword?: string } = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const stripAll = (s: string) => s.replace(/\s+/g, '');
+    const clean = {
+      name: stripAll(name),
+      email: stripAll(email),
+      password: stripAll(password),
+      confirm: stripAll(confirmPassword),
+    };
 
-    if (!email.trim()) {
+    if (!clean.email) {
       nextErrors.email = 'El correo es obligatorio';
-    } else if (!emailRegex.test(email)) {
+    } else if (!emailRegex.test(clean.email)) {
       nextErrors.email = 'Formato de correo inválido';
     }
+    if (email !== clean.email) {
+      nextErrors.email = nextErrors.email ?? 'El correo no puede contener espacios';
+    }
 
-    if (!password.trim()) {
+    if (!clean.password) {
       nextErrors.password = 'La contraseña es obligatoria';
     }
     if (isRegister) {
-      if (password.trim() && password.length < 6) {
+      if (clean.password && clean.password.length < 6) {
         nextErrors.password = 'La contraseña debe tener al menos 6 caracteres';
       }
     }
+    if (password !== clean.password) {
+      nextErrors.password = nextErrors.password ?? 'La contraseña no puede contener espacios';
+    }
 
     if (isRegister) {
-      if (!name.trim()) {
+      if (!clean.name) {
         nextErrors.name = 'El nombre es obligatorio';
       }
-      if (!confirmPassword.trim()) {
+      if (!clean.confirm) {
         nextErrors.confirmPassword = 'Confirma tu contraseña';
-      } else if (password.trim() && confirmPassword !== password) {
+      } else if (clean.password && clean.confirm !== clean.password) {
         nextErrors.confirmPassword = 'Las contraseñas no coinciden';
+      }
+      if (name !== clean.name) {
+        nextErrors.name = nextErrors.name ?? 'El nombre no puede contener espacios';
+      }
+      if (confirmPassword !== clean.confirm) {
+        nextErrors.confirmPassword = nextErrors.confirmPassword ?? 'La confirmación no puede contener espacios';
       }
     }
 
@@ -74,57 +93,20 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     if (!isValid) return;
     setBackendError(undefined);
     setIsLoading(true);
-    window.setTimeout(async () => {
-      if (!isRegister) {
-        try {
-          const raw = window.localStorage.getItem('auth:registeredUser');
-          const reg = raw ? JSON.parse(raw) as { name?: string; email?: string; password?: string } : null;
-          if (!reg || reg.email !== email) {
-            setBackendError('Usuario no registrado');
-            setIsLoading(false);
-            return;
-          }
-          if (!reg.password || reg.password !== password) {
-            setBackendError('Contraseña incorrecta');
-            setIsLoading(false);
-            return;
-          }
-        } catch {
-          setBackendError('Error de autenticación');
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        try {
-          const raw = window.localStorage.getItem('auth:registeredUser');
-          const reg = raw ? JSON.parse(raw) as { email?: string } : null;
-          if (reg && reg.email === email) {
-            setBackendError('El correo ya existe');
-            setIsLoading(false);
-            return;
-          }
-        } catch {}
-        if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-          setBackendError('Faltan campos obligatorios');
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      try {
-        window.localStorage.setItem('fake_token', '123');
-      } catch {}
-
+    try {
       if (isRegister) {
-        await register(name, email, password);
+        await register(clean.name, clean.email, clean.password);
         if (onRegisterSuccess) onRegisterSuccess();
         triggerModeChange('login');
       } else {
-        await login(email, password, rememberMe);
-        navigate('/dashboard');
+        await login(clean.email, clean.password, rememberMe);
+        navigate('/dashboard', { replace: true });
       }
+    } catch (err: any) {
+      setBackendError(err?.message || 'Error de autenticación');
+    } finally {
       setIsLoading(false);
-    }, 900);
+    }
   };
 
   const triggerModeChange = (nextMode: 'login' | 'register') => {

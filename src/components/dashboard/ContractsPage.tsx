@@ -6,6 +6,7 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import Input from '../ui/input';
 import ContractDetailModal from '../contracts/ContractDetailModal';
+const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
 
 type Contract = {
   id: string;
@@ -36,6 +37,31 @@ export default function ContractsPage(): JSX.Element {
   const isMountedRef = useRef(true);
 
   useEffect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('authToken') || '';
+        const res = await fetch(`${backendUrl}/api/contracts`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+        if (res.ok) {
+          const list = await res.json();
+          const rows = Array.isArray(list) ? list.map((item: any) => ({
+            id: String(item.id ?? ''),
+            name: String(item.name ?? ''),
+            date: String(item.uploadedAt ?? new Date().toISOString().slice(0, 10)),
+            status: 'En revisión' as const,
+            risk: String(item.riskScore >= 80 ? 'Muy alto' : item.riskScore >= 60 ? 'Alto' : item.riskScore >= 40 ? 'Medio' : item.riskScore >= 20 ? 'Bajo' : 'Muy bajo') as Contract['risk'],
+            score: Number(item.riskScore ?? 0),
+          })) : [];
+          setRowsState((prev) => {
+            const map = new Map<string, Contract>();
+            [...prev, ...rows].forEach(r => map.set(r.id, r));
+            return Array.from(map.values());
+          });
+          try {
+            localStorage.setItem('contractsCache', JSON.stringify(rows));
+          } catch {}
+        }
+      } catch {}
+    })();
     try {
       const raw = localStorage.getItem('contractsCache');
       if (raw) {
@@ -216,8 +242,8 @@ export default function ContractsPage(): JSX.Element {
                     <td className="px-6 py-4 text-slate-200">{row.risk}</td>
                     <td className="px-6 py-4 text-white font-bold">{row.score}</td>
                             <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <Button size="lg" className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={async () => { setSelectedId(row.id); let overrideData: any = null; const detailsUrl = (process.env.REACT_APP_CONTRACT_DETAILS as string | undefined) || ''; if (detailsUrl) { try { const url = detailsUrl.includes(':id') ? detailsUrl.replace(':id', row.id) : `${detailsUrl}?id=${encodeURIComponent(row.id)}`; const res = await fetch(url, { credentials: 'include' }); const data = await res.json(); overrideData = { id: String(data.id ?? row.id), name: String(data.name ?? row.name), uploadedAt: String(data.uploadedAt ?? row.date), status: (data.status as 'En revisión' | 'Aprobado' | 'Riesgo alto') ?? row.status, riskScore: Number(data.riskScore ?? row.score), clauses: Array.isArray(data.clauses) ? data.clauses.map(String) : [], risks: Array.isArray(data.risks) ? data.risks.map(String) : [], recommendations: Array.isArray(data.recommendations) ? data.recommendations.map(String) : [], summary: data.summary ? String(data.summary) : undefined }; } catch {} } setOverride(overrideData); setIsModalOpen(true); }}>Ver detalles</Button>
+          <div className="flex items-center gap-3">
+            <Button size="lg" className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={async () => { setSelectedId(row.id); let overrideData: any = null; const envDetails = (process.env.REACT_APP_CONTRACT_DETAILS as string | undefined) || ''; try { const token = localStorage.getItem('authToken') || ''; const url = envDetails ? (envDetails.includes(':id') ? envDetails.replace(':id', row.id) : `${envDetails}?id=${encodeURIComponent(row.id)}`) : `${backendUrl}/api/contracts/${row.id}`; const res = await fetch(url, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : undefined }); const data = await res.json(); overrideData = { id: String(data.id ?? row.id), name: String(data.name ?? row.name), uploadedAt: String(data.uploadedAt ?? row.date), status: (data.status as 'En revisión' | 'Aprobado' | 'Riesgo alto') ?? row.status, riskScore: Number(data.riskScore ?? row.score), clauses: Array.isArray(data.keyClauses) ? data.keyClauses.map(String) : Array.isArray(data.clauses) ? data.clauses.map(String) : [], risks: Array.isArray(data.risks) ? data.risks.map(String) : [], recommendations: Array.isArray(data.recommendations) ? data.recommendations.map(String) : [], summary: data.summary ? String(data.summary) : undefined }; } catch {} setOverride(overrideData); setIsModalOpen(true); }}>Ver detalles</Button>
                                 <Button size="lg" variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={() => { const ok = window.confirm('¿Eliminar este contrato?'); if (!ok) return; setRowsState(prev => prev.filter(r => r.id !== row.id)); try { const raw = localStorage.getItem('contractsCache'); const arr = raw ? (JSON.parse(raw) as Contract[]) : []; const next = arr.filter(r => r.id !== row.id); localStorage.setItem('contractsCache', JSON.stringify(next)); } catch {} if (selectedId === row.id) { setIsModalOpen(false); setSelectedId(null); } }}>Eliminar</Button>
                               </div>
                             </td>

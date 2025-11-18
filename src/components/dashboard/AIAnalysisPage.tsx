@@ -35,6 +35,7 @@ export default function AIAnalysisPage(): JSX.Element {
     'Identificar riesgos potenciales',
     'Extraer cláusulas clave',
   ]);
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
 
   const escapeHtml = (s: string) => s
     .replace(/&/g, '&amp;')
@@ -141,7 +142,8 @@ export default function AIAnalysisPage(): JSX.Element {
     if (!state.contractId && !state.contractName) return;
     setTyping(true);
     const setCtxUrl = (process.env.REACT_APP_CHAT_SET_CONTEXT as string | undefined) || '';
-    const detailsUrl = (process.env.REACT_APP_CONTRACT_DETAILS as string | undefined) || '';
+    const envDetails = (process.env.REACT_APP_CONTRACT_DETAILS as string | undefined) || '';
+    const detailsUrl = envDetails || (state.contractId ? `${backendUrl}/api/contracts/${state.contractId}` : '');
     const payload = { contractId: state.contractId, contractName: state.contractName };
     const sendWs = () => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -160,10 +162,11 @@ export default function AIAnalysisPage(): JSX.Element {
       }
     };
     const fetchDetails = async () => {
-      if (!detailsUrl || !state.contractId) return null;
+      if (!detailsUrl) return null;
       try {
-        const url = detailsUrl.includes(':id') ? detailsUrl.replace(':id', String(state.contractId)) : `${detailsUrl}?id=${encodeURIComponent(String(state.contractId))}`;
-        const res = await fetch(url, { credentials: 'include' });
+        const token = localStorage.getItem('authToken') || '';
+        const url = envDetails && state.contractId ? (detailsUrl.includes(':id') ? detailsUrl.replace(':id', String(state.contractId)) : `${detailsUrl}?id=${encodeURIComponent(String(state.contractId))}`) : detailsUrl;
+        const res = await fetch(url, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : undefined });
         return await res.json();
       } catch {
         return null;
@@ -209,15 +212,19 @@ export default function AIAnalysisPage(): JSX.Element {
           return;
         } catch {}
       }
-      return;
+      // fall through to backend REST
     }
-    window.setTimeout(() => {
-      const aiText = state.contractName ? `Análisis del contrato ${state.contractName}: se recomienda revisar cláusulas de confidencialidad, penalidades y vigencia.` : 'Tu solicitud está siendo procesada. Proporciona el contrato para respuestas específicas.';
-      const aiMsg: ChatMessage = { id: `${Date.now()}-a`, author: 'ai', text: aiText, date: new Date().toISOString(), type: 'answer' };
-      setMessages((prev) => [...prev, aiMsg]);
+    try {
+      const token = localStorage.getItem('authToken') || '';
+      const url = state.contractId ? `${backendUrl}/api/chat/${state.contractId}` : `${backendUrl}/api/chat/general`;
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ message: text }) });
+      const data = await res.json();
+      const aiText = String(data.message || '');
+      const msg: ChatMessage = { id: `${Date.now()}-a`, author: 'ai', text: aiText, date: new Date().toISOString(), type: 'answer' };
+      setMessages((prev) => [...prev, msg]);
       if (!atBottomRef.current) setNewAiCount((c) => c + 1);
-      setTyping(false);
-    }, 900);
+    } catch {}
+    setTyping(false);
   };
 
   useEffect(() => {
