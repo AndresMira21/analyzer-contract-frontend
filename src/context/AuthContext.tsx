@@ -46,16 +46,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
+    if (!name && email) {
+      const local = email.split('@')[0] || '';
+      name = local ? local.charAt(0).toUpperCase() + local.slice(1) : undefined;
+    }
     const session: AuthUser = { email, name };
     window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     setUser(session);
   };
 
-  const register = async (name: string, email: string, _password: string) => {
-    // Simulated register: save a test user in localStorage
-    const registered = { name, email };
+  const register = async (name: string, email: string, password: string) => {
+    const registered = { name, email, password };
     window.localStorage.setItem(REGISTERED_KEY, JSON.stringify(registered));
-    // Not auto-logging in; login remains explicit via login()
   };
 
   const logout = () => {

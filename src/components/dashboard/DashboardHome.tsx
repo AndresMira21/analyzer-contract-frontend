@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -16,22 +16,202 @@ export default function DashboardHome(): JSX.Element {
   const { user } = useAuth();
   const name = user?.name ?? 'Usuario';
   const navigate = useNavigate();
+  const isMountedRef = useRef(true);
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [isAnalyzeOpen, setIsAnalyzeOpen] = useState<boolean>(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; type: string; size: number; contractName?: string }[]>([]);
-  
+  const [contractsCount, setContractsCount] = useState<number>(124);
   const stats = [
-    { icon: FileText, title: 'Contratos analizados', value: 124 },
+    { icon: FileText, title: 'Contratos analizados', value: contractsCount },
   ];
 
-  const [activity, setActivity] = useState<{ id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note' }[]>([
-    { id: 'EV-001', title: 'Contrato de Servicios revisado', ts: 'Hace 5 min', type: 'ok' },
-    { id: 'EV-002', title: 'Riesgo alto detectado', ts: 'Hace 1 h', type: 'warn' },
+  const [activity, setActivity] = useState<{ id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string }[]>([
+    { id: 'EV-001', title: 'Contrato de Servicios revisado', ts: 'Hace 5 min', type: 'ok', contractId: '123' },
+    { id: 'EV-002', title: 'Riesgo alto detectado', ts: 'Hace 1 h', type: 'warn', contractId: '789' },
     { id: 'EV-003', title: 'Nuevo comentario del cliente', ts: 'Ayer', type: 'note' },
   ]);
 
-  
+  const tsToMillis = (ts: string) => {
+    if (!ts) return 0;
+    const num = Number(ts);
+    if (!Number.isNaN(num) && num > 0) return num;
+    const s = ts.toLowerCase();
+    const now = Date.now();
+    const m = s.match(/^hace\s+(\d+)\s*min/);
+    if (m) return now - parseInt(m[1], 10) * 60000;
+    const h = s.match(/^hace\s+(\d+)\s*(h|hora|horas)/);
+    if (h) return now - parseInt(h[1], 10) * 3600000;
+    if (s === 'ayer') return now - 24 * 3600000;
+    if (s.includes('hace unos minutos')) return now - 5 * 60000;
+    const d = new Date(ts);
+    const t = d.getTime();
+    return Number.isNaN(t) ? 0 : t;
+  };
 
+  const formatTs = (ts: string) => {
+    const ms = tsToMillis(ts);
+    if (!ms) return ts;
+    const now = Date.now();
+    const diff = now - ms;
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (m < 1) return 'Hace unos minutos';
+    if (m < 60) return `Hace ${m} min`;
+    if (h < 24) return `Hace ${h} h`;
+    if (d < 2) return 'Ayer';
+    return new Date(ms).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  };
+
+  const upsertActivity = useCallback((list: { id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string }[], item: { id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string }) => {
+    const map = new Map(list.map((n) => [n.id, n] as const));
+    map.set(item.id, item);
+    const toMillisLocal = (ts: string) => {
+      if (!ts) return 0;
+      const num = Number(ts);
+      if (!Number.isNaN(num) && num > 0) return num;
+      const s = ts.toLowerCase();
+      const now = Date.now();
+      const m = s.match(/^hace\s+(\d+)\s*min/);
+      if (m) return now - parseInt(m[1], 10) * 60000;
+      const h = s.match(/^hace\s+(\d+)\s*(h|hora|horas)/);
+      if (h) return now - parseInt(h[1], 10) * 3600000;
+      if (s === 'ayer') return now - 24 * 3600000;
+      if (s.includes('hace unos minutos')) return now - 5 * 60000;
+      const d = new Date(ts);
+      const t = d.getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+    return Array.from(map.values()).sort((a, b) => toMillisLocal(b.ts) - toMillisLocal(a.ts));
+  }, []);
+
+  const parseActivityEvent = useCallback((raw: any): { id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string } | null => {
+    if (!raw) return null;
+    const id = String(raw.id ?? '');
+    const title = String(raw.title ?? '');
+    const ts = String(raw.ts ?? raw.time ?? '');
+    const t = String(raw.type ?? 'note');
+    const type = t === 'ok' || t === 'warn' ? (t as 'ok' | 'warn') : 'note';
+    const contractId = raw.contractId ?? raw.contract_id ?? undefined;
+    if (!id || !title) return null;
+    return { id, title, ts: ts || 'Ahora', type, contractId };
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const loadContractsCount = () => {
+    try {
+      const raw = window.localStorage.getItem('contractsCache');
+      if (!raw) return 0;
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.length : 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  useEffect(() => {
+    setContractsCount(loadContractsCount());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'contractsCache') return;
+      setContractsCount(loadContractsCount());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    const sseUrl = (process.env.REACT_APP_CONTRACTS_COUNT_SSE as string | undefined) || '';
+    const wsUrl = (process.env.REACT_APP_CONTRACTS_COUNT_WS as string | undefined) || '';
+    let es: EventSource | null = null;
+    let ws: WebSocket | null = null;
+    let active = true;
+
+    const apply = (val: unknown) => {
+      const count = Number(val);
+      if (Number.isNaN(count)) return;
+      if (!active || !isMountedRef.current) return;
+      setContractsCount(count);
+    };
+
+    if (sseUrl) {
+      try {
+        es = new EventSource(sseUrl, { withCredentials: true });
+        es.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            apply(data.count ?? data.contractsCount ?? data.total ?? data.value);
+          } catch {}
+        };
+      } catch {}
+    } else if (wsUrl) {
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data as string);
+            apply(data.count ?? data.contractsCount ?? data.total ?? data.value);
+          } catch {}
+        };
+      } catch {}
+    }
+
+    return () => {
+      active = false;
+      if (es) try { es.onmessage = null; } catch {}
+      if (ws) try { ws.onmessage = null; } catch {}
+      if (es) try { es.close(); } catch {}
+      if (ws) try { ws.close(); } catch {}
+    };
+  }, []);
+
+  useEffect(() => {
+    const sseUrl = (process.env.REACT_APP_ACTIVITY_SSE as string | undefined) || '';
+    const wsUrl = (process.env.REACT_APP_ACTIVITY_WS as string | undefined) || '';
+    let es: EventSource | null = null;
+    let ws: WebSocket | null = null;
+    let active = true;
+
+    if (sseUrl) {
+      try {
+        es = new EventSource(sseUrl, { withCredentials: true });
+        es.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            const item = parseActivityEvent(data);
+            if (!item || !active || !isMountedRef.current) return;
+            setActivity((prev) => upsertActivity(prev, item));
+          } catch {}
+        };
+      } catch {}
+    } else if (wsUrl) {
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data as string);
+            const item = parseActivityEvent(data);
+            if (!item || !active || !isMountedRef.current) return;
+            setActivity((prev) => upsertActivity(prev, item));
+          } catch {}
+        };
+      } catch {}
+    }
+
+    return () => {
+      active = false;
+      if (es) try { es.onmessage = null; } catch {}
+      if (ws) try { ws.onmessage = null; } catch {}
+      if (es) try { es.close(); } catch {}
+      if (ws) try { ws.close(); } catch {}
+    };
+  }, [parseActivityEvent, upsertActivity]);
+
+  
+  
   return (
     <div className="space-y-10">
       <motion.div initial={{ opacity: 0, y: 8, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5 }}>
@@ -44,16 +224,16 @@ export default function DashboardHome(): JSX.Element {
           Hola, {name} 👋
         </motion.h1>
         
-        <div className="relative min-h-[68vh] flex flex-col items-center justify-center">
+        <div className="relative min-h-[68vh] flex flex-col items-center justify-center pt-6">
           <motion.h2
-            className="text-4xl md:text-6xl lg:text-7xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight mb-4"
+            className="text-4xl md:text-6xl lg:text-7xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight mt-4 mb-6"
             style={{ backgroundSize: '200% auto' }}
             animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
             transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
           >
             Bienvenid@ a LegalConnect
           </motion.h2>
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-6">
             <div className="w-[280px] md:w-[340px]">
               <Lottie animationData={robotAnimation} loop autoplay />
             </div>
@@ -120,10 +300,10 @@ export default function DashboardHome(): JSX.Element {
                   <div className="h-8 w-8 rounded-full" style={{ backgroundColor: ev.type === 'warn' ? 'rgba(239,68,68,0.15)' : ev.type === 'ok' ? 'rgba(58,123,255,0.15)' : 'rgba(100,116,139,0.15)' }} />
                   <div>
                     <div className="text-slate-200">{ev.title}</div>
-                    <div className="text-slate-500 text-sm">{ev.ts}</div>
+                    <div className="text-slate-500 text-sm">{formatTs(ev.ts)}</div>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5" color="#94A3B8" />
+                <ChevronRight className="h-5 w-5 cursor-pointer" color="#94A3B8" onClick={() => { if (ev.contractId) navigate(`/dashboard/contracts/${ev.contractId}`); }} />
               </motion.div>
             ))}
           </div>
@@ -135,19 +315,57 @@ export default function DashboardHome(): JSX.Element {
         isOpen={isAnalyzeOpen}
         onClose={() => setIsAnalyzeOpen(false)}
         files={uploadedFiles}
-        onAnalyzed={(file) => {
-          const analyzed = {
-            id: `AC-${Date.now()}`,
-            name: file.contractName || file.name,
-            uploadedAt: new Date().toISOString().slice(0, 10),
-            status: 'En revisión' as const,
-            riskScore: Math.min(100, Math.max(8, Math.round(file.size / 1024))),
-            clauses: ['Alcance de servicios', 'Confidencialidad', 'Propiedad intelectual'],
-            risks: ['Ambigüedad en penalizaciones', 'Falta de SLA explícito'],
-            recommendations: ['Definir métricas de desempeño', 'Agregar cláusula de resolución de disputas'],
-            summary: 'Análisis inicial automático basado en el documento subido.'
+        onAnalyzed={async (file) => {
+          let analyzed = null as null | {
+            id: string; name: string; uploadedAt: string; status: 'En revisión' | 'Aprobado' | 'Riesgo alto'; riskScore: number; clauses: string[]; risks: string[]; recommendations: string[]; summary?: string;
           };
-          setActivity(prev => [{ id: `EV-${Date.now() + 1}`, title: `Contrato analizado: ${analyzed.name}`, ts: 'Hace 1 min', type: 'ok' }, ...prev]);
+          const endpoint = (process.env.REACT_APP_ANALYZE_CONTRACT as string | undefined) || '';
+          const payload = {
+            name: file.contractName || file.name,
+            size: file.size,
+            type: file.type,
+          };
+          try {
+            if (endpoint) {
+              const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'include' });
+              const data = await res.json();
+              analyzed = {
+                id: String(data.id ?? `AC-${Date.now()}`),
+                name: String(data.name ?? (file.contractName || file.name)),
+                uploadedAt: String(data.uploadedAt ?? new Date().toISOString().slice(0, 10)),
+                status: (data.status as 'En revisión' | 'Aprobado' | 'Riesgo alto') ?? 'En revisión',
+                riskScore: Number(data.riskScore ?? Math.min(100, Math.max(8, Math.round(file.size / 1024)))),
+                clauses: (Array.isArray(data.clauses) ? data.clauses.map(String) : ['Alcance de servicios', 'Confidencialidad', 'Propiedad intelectual']),
+                risks: (Array.isArray(data.risks) ? data.risks.map(String) : ['Ambigüedad en penalizaciones', 'Falta de SLA explícito']),
+                recommendations: (Array.isArray(data.recommendations) ? data.recommendations.map(String) : ['Definir métricas de desempeño', 'Agregar cláusula de resolución de disputas']),
+                summary: String(data.summary ?? 'Análisis inicial automático basado en el documento subido.'),
+              };
+            }
+          } catch {}
+          if (!analyzed) {
+            analyzed = {
+              id: `AC-${Date.now()}`,
+              name: file.contractName || file.name,
+              uploadedAt: new Date().toISOString().slice(0, 10),
+              status: 'En revisión',
+              riskScore: Math.min(100, Math.max(8, Math.round(file.size / 1024))),
+              clauses: ['Alcance de servicios', 'Confidencialidad', 'Propiedad intelectual'],
+              risks: ['Ambigüedad en penalizaciones', 'Falta de SLA explícito'],
+              recommendations: ['Definir métricas de desempeño', 'Agregar cláusula de resolución de disputas'],
+              summary: 'Análisis inicial automático basado en el documento subido.'
+            };
+          }
+          try {
+            const riskText = analyzed.riskScore >= 80 ? 'Muy alto' : analyzed.riskScore >= 60 ? 'Alto' : analyzed.riskScore >= 40 ? 'Medio' : analyzed.riskScore >= 20 ? 'Bajo' : 'Muy bajo';
+            const row = { id: analyzed.id, name: analyzed.name, date: analyzed.uploadedAt, status: analyzed.status, risk: riskText, score: analyzed.riskScore };
+            const raw = localStorage.getItem('contractsCache');
+            const arr = raw ? JSON.parse(raw) : [];
+            const map = new Map<string, any>();
+            [...arr, row].forEach((r: any) => map.set(r.id, r));
+            localStorage.setItem('contractsCache', JSON.stringify(Array.from(map.values())));
+          } catch {}
+          setActivity(prev => [{ id: `EV-${Date.now() + 1}`, title: `Contrato analizado: ${analyzed!.name}`, ts: new Date().toISOString(), type: 'ok', contractId: analyzed!.id }, ...prev]);
+          setContractsCount((prev) => prev + 1);
           navigate('/dashboard/contracts', { state: { analyzedContract: analyzed } });
           setUploadedFiles(prev => {
             const next = prev.filter(f => f !== file);

@@ -76,31 +76,38 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     if (!isValid) return;
     setBackendError(undefined);
     setIsLoading(true);
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       if (!isRegister) {
-        if (email.toLowerCase().includes('invalid')) {
-          setBackendError('Invalid credentials');
-          setIsLoading(false);
-          return;
-        }
-        if (email.toLowerCase().includes('notfound')) {
-          setBackendError('User not found');
-          setIsLoading(false);
-          return;
-        }
-        if (password === 'wrong') {
-          setBackendError('Incorrect password');
+        try {
+          const raw = window.localStorage.getItem('auth:registeredUser');
+          const reg = raw ? JSON.parse(raw) as { name?: string; email?: string; password?: string } : null;
+          if (!reg || reg.email !== email) {
+            setBackendError('Usuario no registrado');
+            setIsLoading(false);
+            return;
+          }
+          if (!reg.password || reg.password !== password) {
+            setBackendError('Contraseña incorrecta');
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          setBackendError('Error de autenticación');
           setIsLoading(false);
           return;
         }
       } else {
-        if (email.toLowerCase().includes('exists')) {
-          setBackendError('Email already exists');
-          setIsLoading(false);
-          return;
-        }
+        try {
+          const raw = window.localStorage.getItem('auth:registeredUser');
+          const reg = raw ? JSON.parse(raw) as { email?: string } : null;
+          if (reg && reg.email === email) {
+            setBackendError('El correo ya existe');
+            setIsLoading(false);
+            return;
+          }
+        } catch {}
         if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-          setBackendError('Missing fields');
+          setBackendError('Faltan campos obligatorios');
           setIsLoading(false);
           return;
         }
@@ -111,9 +118,11 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
       } catch {}
 
       if (isRegister) {
+        await register(name, email, password);
         if (onRegisterSuccess) onRegisterSuccess();
         triggerModeChange('login');
       } else {
+        await login(email, password, rememberMe);
         navigate('/dashboard');
       }
       setIsLoading(false);
@@ -341,13 +350,6 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
                 Recordarme
               </label>
             </div>
-            <button
-              type="button"
-              className="text-sm text-blue-400 hover:text-blue-300 hover:underline transition-colors tracking-wide"
-              onClick={() => {}}
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
           </motion.div>
         )}
 

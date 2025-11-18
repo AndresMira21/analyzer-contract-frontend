@@ -1,5 +1,5 @@
 import type { JSX, ChangeEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Card } from '../ui/card';
@@ -33,6 +33,7 @@ export default function ContractsPage(): JSX.Element {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [override, setOverride] = useState<any | null>(null);
   const [rowsState, setRowsState] = useState<Contract[]>(data);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     try {
@@ -46,6 +47,62 @@ export default function ContractsPage(): JSX.Element {
         });
       }
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const sseUrl = (process.env.REACT_APP_CONTRACTS_SSE as string | undefined) || '';
+    const wsUrl = (process.env.REACT_APP_CONTRACTS_WS as string | undefined) || '';
+    let es: EventSource | null = null;
+    let ws: WebSocket | null = null;
+    let active = true;
+    const upsert = (list: Contract[], item: any) => {
+      const row: Contract = {
+        id: String(item.id ?? ''),
+        name: String(item.name ?? ''),
+        date: String(item.date ?? item.uploadedAt ?? new Date().toISOString().slice(0, 10)),
+        status: (item.status as Contract['status']) ?? 'En revisión',
+        risk: String(item.risk ?? (item.riskScore >= 80 ? 'Muy alto' : item.riskScore >= 60 ? 'Alto' : item.riskScore >= 40 ? 'Medio' : item.riskScore >= 20 ? 'Bajo' : 'Muy bajo')) as Contract['risk'],
+        score: Number(item.score ?? item.riskScore ?? 0),
+      };
+      if (!row.id || !row.name) return list;
+      const map = new Map(list.map(r => [r.id, r] as const));
+      map.set(row.id, row);
+      return Array.from(map.values());
+    };
+    const handle = (raw: any) => {
+      if (!active || !isMountedRef.current) return;
+      try {
+        const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(data)) {
+          setRowsState(prev => data.reduce(upsert, prev));
+          return;
+        }
+        if (data && typeof data === 'object') {
+          setRowsState(prev => upsert(prev, data));
+        }
+      } catch {}
+    };
+    if (sseUrl) {
+      try {
+        es = new EventSource(sseUrl, { withCredentials: true });
+        es.onmessage = (e) => handle(e.data);
+      } catch {}
+    } else if (wsUrl) {
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onmessage = (ev) => handle(ev.data as string);
+      } catch {}
+    }
+    return () => {
+      active = false;
+      if (es) try { es.close(); } catch {}
+      if (ws) try { ws.close(); } catch {}
+    };
   }, []);
 
   useEffect(() => {
@@ -160,7 +217,7 @@ export default function ContractsPage(): JSX.Element {
                     <td className="px-6 py-4 text-white font-bold">{row.score}</td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                <Button size="lg" className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={() => { setSelectedId(row.id); setIsModalOpen(true); }}>Ver detalles</Button>
+                                <Button size="lg" className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={async () => { setSelectedId(row.id); let overrideData: any = null; const detailsUrl = (process.env.REACT_APP_CONTRACT_DETAILS as string | undefined) || ''; if (detailsUrl) { try { const url = detailsUrl.includes(':id') ? detailsUrl.replace(':id', row.id) : `${detailsUrl}?id=${encodeURIComponent(row.id)}`; const res = await fetch(url, { credentials: 'include' }); const data = await res.json(); overrideData = { id: String(data.id ?? row.id), name: String(data.name ?? row.name), uploadedAt: String(data.uploadedAt ?? row.date), status: (data.status as 'En revisión' | 'Aprobado' | 'Riesgo alto') ?? row.status, riskScore: Number(data.riskScore ?? row.score), clauses: Array.isArray(data.clauses) ? data.clauses.map(String) : [], risks: Array.isArray(data.risks) ? data.risks.map(String) : [], recommendations: Array.isArray(data.recommendations) ? data.recommendations.map(String) : [], summary: data.summary ? String(data.summary) : undefined }; } catch {} } setOverride(overrideData); setIsModalOpen(true); }}>Ver detalles</Button>
                                 <Button size="lg" variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={() => { const ok = window.confirm('¿Eliminar este contrato?'); if (!ok) return; setRowsState(prev => prev.filter(r => r.id !== row.id)); try { const raw = localStorage.getItem('contractsCache'); const arr = raw ? (JSON.parse(raw) as Contract[]) : []; const next = arr.filter(r => r.id !== row.id); localStorage.setItem('contractsCache', JSON.stringify(next)); } catch {} if (selectedId === row.id) { setIsModalOpen(false); setSelectedId(null); } }}>Eliminar</Button>
                               </div>
                             </td>

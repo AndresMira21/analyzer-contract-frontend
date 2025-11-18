@@ -13,7 +13,7 @@ export default function DashboardSidebar({ userName, userEmail, onLogout }: Prop
   const activeBase = 'text-white';
 
   return (
-    <aside className="w-72 border-r backdrop-blur-xl" style={{ backgroundColor: 'rgba(20,30,60,0.28)', borderColor: 'rgba(58, 123, 255, 0.18)' }}>
+    <aside className="w-72 border-r backdrop-blur-xl flex flex-col h-full" style={{ backgroundColor: 'rgba(20,30,60,0.28)', borderColor: 'rgba(58, 123, 255, 0.18)' }}>
       <div className="px-6 py-6 space-y-4" style={{ borderBottom: '1px solid rgba(58,123,255,0.18)', backgroundColor: 'rgba(20,30,60,0.22)' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full text-white flex items-center justify-center" style={{ backgroundColor: '#3A7BFF' }}>
