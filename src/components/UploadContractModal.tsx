@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import Input from './ui/input';
- 
+
 
 type UploadedInfo = { name: string; type: string; size: number; contractName?: string };
 type UploadContractModalProps = {
