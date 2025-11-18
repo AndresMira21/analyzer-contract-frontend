@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, AlertTriangle, Info, CheckCircle, X, Check, FileText } from 'lucide-react';
+import { Bell, AlertTriangle, CheckCircle, X, Check, FileText } from 'lucide-react';
 
 type Tipo = 'nuevo_contrato' | 'contrato_actualizado' | 'recordatorio_vencimiento';
 type Estado = 'leida' | 'no_leida';

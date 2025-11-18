@@ -53,9 +53,9 @@ export default function AIAnalysisPage(): JSX.Element {
     const out: string[] = [];
     let inList = false;
     for (const line of lines) {
-      if (/^\s*\-\s+/.test(line)) {
+      if (/^\s*-\s+/.test(line)) {
         if (!inList) { out.push('<ul>'); inList = true; }
-        out.push('<li>' + line.replace(/^\s*\-\s+/, '') + '</li>');
+        out.push('<li>' + line.replace(/^\s*-\s+/, '') + '</li>');
       } else {
         if (inList) { out.push('</ul>'); inList = false; }
         out.push('<p>' + line + '</p>');

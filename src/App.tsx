@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import type { JSX } from "react";
 import { HomePage } from "./components/Home";
-import { useAuth } from "./context/AuthContext";
 import { LoginForm } from "./components/Login";
 import { motion } from "motion/react";
 import { ProfessionalBackground } from "./components/ProfessionalBackground.jsx";
@@ -13,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 type Screen = "home" | "login" | "register" | "dashboard";
 
 function App(): JSX.Element | null {
-  const { isAuthenticated, logout } = useAuth();
   const [screen, setScreen] = useState<Screen>("home");
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,7 +37,6 @@ function App(): JSX.Element | null {
     return null;
   }
 
-  const goHome = () => navigate("/");
   const goLogin = () => navigate("/login");
   const goRegister = () => navigate("/register");
   

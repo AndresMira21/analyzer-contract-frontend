@@ -11,7 +11,6 @@ import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { LogIn, UserPlus, Home, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { ContractAnimation } from './ContractAnimation';
-import { authService } from '../services/AuthService';
 import { useAuth } from '../context/AuthContext';
 import { AnimationFactory } from '../utils/animationFactory';
 
@@ -35,8 +34,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  const [isExiting, setIsExiting] = useState(false);
-  const [flipDir, setFlipDir] = useState<1 | -1>(1);
+  
 
   const isRegister = mode === 'register';
 
@@ -130,11 +128,8 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
   };
 
   const triggerModeChange = (nextMode: 'login' | 'register') => {
-    setFlipDir(nextMode === 'register' ? 1 : -1);
-    setIsExiting(true);
     window.setTimeout(() => {
       onModeChange?.(nextMode);
-      setIsExiting(false);
     }, 450);
   };
 

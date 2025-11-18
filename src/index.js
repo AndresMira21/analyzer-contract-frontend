@@ -17,8 +17,3 @@ root.render(
     </BrowserRouter>
   </React.StrictMode>
 );
-
-// Se eliminaron imports de demos para mantener mínima la estructura.
-
-// Métricas de rendimiento (CRA) deshabilitadas para simplificar.
-// Si deseas habilitarlas, reintroduce reportWebVitals y su llamada.

@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import Input from './ui/input';
-import { useNavigate } from 'react-router-dom';
+ 
 
 type UploadedInfo = { name: string; type: string; size: number; contractName?: string };
 type UploadContractModalProps = {
@@ -16,7 +16,6 @@ type UploadContractModalProps = {
 
 export default function UploadContractModal({ isOpen, onClose, onUploaded }: UploadContractModalProps): JSX.Element | null {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const navigate = useNavigate();
   const [fileName, setFileName] = useState('');
   const [contractName, setContractName] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);

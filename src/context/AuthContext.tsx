@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, _password: string, _rememberMe: boolean = true) => {
+  const login = useCallback(async (email: string, _password: string, _rememberMe: boolean = true) => {
     // Simulated login: accept any credentials, persist session in localStorage
     // If a registered user exists and matches email, attach its name
     let name: string | undefined;
@@ -62,19 +62,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHist));
     } catch {}
     setUser(session);
-  };
+  }, []);
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = useCallback(async (name: string, email: string, password: string) => {
     const registered = { name, email, password };
     window.localStorage.setItem(REGISTERED_KEY, JSON.stringify(registered));
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     window.localStorage.removeItem(SESSION_KEY);
     setUser(null);
-  };
+  }, []);
 
-  const updateProfile = (name?: string, email?: string) => {
+  const updateProfile = useCallback((name?: string, email?: string) => {
     const next: AuthUser = { name: name ?? user?.name, email: email ?? user?.email ?? '' };
     window.localStorage.setItem(SESSION_KEY, JSON.stringify(next));
     try {
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHist));
     } catch {}
     setUser(next);
-  };
+  }, [user]);
 
   const isAuthenticated = useCallback(() => {
     if (user) return true;
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated }), [user, isAuthenticated]);
+  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated }), [user, login, register, logout, updateProfile, isAuthenticated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
