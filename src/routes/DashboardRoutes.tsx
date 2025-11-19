@@ -13,6 +13,7 @@ import ContractDetails from '../components/ContractDetails';
 export default function DashboardRoutes(): JSX.Element {
   return (
     <Routes>
+      <Route path="*" element={<></>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardHome />} />
         <Route path="contracts" element={<ContractsPage />} />

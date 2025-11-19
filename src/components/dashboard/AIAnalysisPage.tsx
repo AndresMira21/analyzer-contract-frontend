@@ -215,7 +215,7 @@ export default function AIAnalysisPage(): JSX.Element {
       // fall through to backend REST
     }
     try {
-      const token = localStorage.getItem('authToken') || '';
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
       const url = state.contractId ? `${backendUrl}/api/chat/${state.contractId}` : `${backendUrl}/api/chat/general`;
       const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ message: text }) });
       const data = await res.json();

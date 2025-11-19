@@ -88,7 +88,7 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
               <Button className="text-white" style={{ backgroundColor: '#3A7BFF' }} disabled={uploading} onClick={async () => {
                 if (fileError) { return; }
                 if (selectedFiles.length === 0) { setError('Archivo obligatorio'); return; }
-                const token = localStorage.getItem('authToken') || '';
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
                 setError('');
                 setSuccess('');
                 setResult(null);
@@ -96,6 +96,8 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                 setProgress(0);
                 const uploadUrl = (process.env.REACT_APP_CONTRACTS_UPLOAD as string | undefined) || '';
                 try {
+                  if (!uploadUrl) { throw new Error('Endpoint de subida no configurado'); }
+                  if (!token) { throw new Error('Debes iniciar sesión para subir contratos'); }
                   for (const f of selectedFiles) {
                     const fd = new FormData();
                     fd.append('file', f);

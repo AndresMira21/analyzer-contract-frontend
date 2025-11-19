@@ -27,7 +27,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [backendError, setBackendError] = useState<string | undefined>(undefined);
@@ -44,7 +44,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const stripAll = (s: string) => s.replace(/\s+/g, '');
     const clean = {
-      name: stripAll(name),
+      name: (name),
       email: stripAll(email),
       password: stripAll(password),
       confirm: stripAll(confirmPassword),
@@ -231,6 +231,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
                 setBackendError(undefined);
               }}
               required
+              autoComplete="email"
               className="pl-10 border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 h-12 text-base transition-all duration-200 hover:bg-slate-800/60 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
             />
           </div>
@@ -261,6 +262,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
                 setBackendError(undefined);
               }}
               required
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
               className="pl-10 pr-10 border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 h-12 text-base transition-all duration-200 hover:bg-slate-800/60 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
             />
             <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-400 transition-colors">
@@ -295,6 +297,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
                   setBackendError(undefined);
                 }}
                 required
+                autoComplete="new-password"
                 className="pl-10 pr-10 border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 h-12 text-base transition-all duration-200 hover:bg-slate-800/60 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
               />
               <button type="button" onClick={() => setShowConfirmPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-400 transition-colors">
