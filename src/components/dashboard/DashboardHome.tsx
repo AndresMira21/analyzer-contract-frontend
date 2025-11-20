@@ -28,6 +28,7 @@ export default function DashboardHome(): JSX.Element {
 
   const [activity, setActivity] = useState<{ id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string }[]>([]);
   const activityKey = `${user?.email ? `user:${user.email}` : 'user:guest'}:activity`;
+  const contractsKey = `${user?.email ? `contractsCache:${user.email}` : 'contractsCache:guest'}`;
 
   const tsToMillis = (ts: string) => {
     if (!ts) return 0;
@@ -104,7 +105,7 @@ export default function DashboardHome(): JSX.Element {
 
   const loadContractsCount = () => {
     try {
-      const raw = window.localStorage.getItem('contractsCache');
+      const raw = window.localStorage.getItem(contractsKey);
       if (!raw) return 0;
       const arr = JSON.parse(raw);
       return Array.isArray(arr) ? arr.length : 0;
@@ -113,15 +114,33 @@ export default function DashboardHome(): JSX.Element {
     }
   };
 
+  const seedActivityFromContracts = useCallback(() => {
+    try {
+      const raw = window.localStorage.getItem(contractsKey);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return;
+      const items = arr.map((r: any) => ({ id: `SEED-${String(r.id || r.name || Date.now())}`, title: `Contrato analizado: ${String(r.name || '')}`.trim(), ts: String(r.date || r.uploadedAt || ''), type: 'ok' as const, contractId: String(r.id || '') })).filter(x => x.title && (x.ts || x.contractId));
+      if (items.length === 0) return;
+      setActivity(prev => {
+        let next = [...prev];
+        for (const it of items) next = upsertActivity(next, it);
+        try { window.localStorage.setItem(activityKey, JSON.stringify(next)); } catch {}
+        return next;
+      });
+    } catch {}
+  }, [activityKey, upsertActivity, contractsKey]);
+
   useEffect(() => {
     setContractsCount(loadContractsCount());
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== 'contractsCache') return;
+      if (e.key !== contractsKey) return;
       setContractsCount(loadContractsCount());
+      seedActivityFromContracts();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [seedActivityFromContracts, contractsKey]);
 
   useEffect(() => {
     try {
@@ -130,6 +149,10 @@ export default function DashboardHome(): JSX.Element {
       if (Array.isArray(arr)) setActivity(arr);
     } catch {}
   }, [activityKey]);
+
+  useEffect(() => {
+    if (activity.length === 0) seedActivityFromContracts();
+  }, [activity.length, seedActivityFromContracts]);
 
   useEffect(() => {
     const sseUrl = (process.env.REACT_APP_CONTRACTS_COUNT_SSE as string | undefined) || '';

@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import Input from './ui/input';
+import { useAuth } from '../context/AuthContext';
 
 
 type UploadedInfo = { name: string; type: string; size: number; contractName?: string };
@@ -25,6 +26,8 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
   const [success, setSuccess] = useState('');
   const [fileError, setFileError] = useState('');
   const [result, setResult] = useState<{ type: string; clauses: string[]; risks: string[]; riskScore: number; recommendations: string[]; summary: string } | null>(null);
+  const { user } = useAuth();
+  const contractsKey = user?.email ? `contractsCache:${user.email}` : 'contractsCache:guest';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -130,11 +133,11 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                           summary: 'Análisis inicial automático basado en el documento subido.'
                         };
                         try {
-                          const raw = localStorage.getItem('contractsCache');
+                          const raw = localStorage.getItem(contractsKey);
                           const arr = raw ? JSON.parse(raw) : [];
                           const map = new Map<string, any>();
                           [...arr, { id: localAnalyzed.id, name: localAnalyzed.name, date: localAnalyzed.uploadedAt, status: localAnalyzed.status, risk: localAnalyzed.riskScore >= 80 ? 'Muy alto' : localAnalyzed.riskScore >= 60 ? 'Alto' : localAnalyzed.riskScore >= 40 ? 'Medio' : localAnalyzed.riskScore >= 20 ? 'Bajo' : 'Muy bajo', score: localAnalyzed.riskScore }].forEach((r: any) => map.set(r.id, r));
-                          localStorage.setItem('contractsCache', JSON.stringify(Array.from(map.values())));
+                          localStorage.setItem(contractsKey, JSON.stringify(Array.from(map.values())));
                         } catch {}
                         continue;
                       }
@@ -157,11 +160,11 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                       } : null;
                       if (analyzed) {
                         try {
-                          const raw = localStorage.getItem('contractsCache');
+                          const raw = localStorage.getItem(contractsKey);
                           const arr = raw ? JSON.parse(raw) : [];
                           const map = new Map<string, any>();
                           [...arr, { id: analyzed.id, name: analyzed.name, date: analyzed.uploadedAt, status: analyzed.status, risk: analyzed.riskScore >= 80 ? 'Muy alto' : analyzed.riskScore >= 60 ? 'Alto' : analyzed.riskScore >= 40 ? 'Medio' : analyzed.riskScore >= 20 ? 'Bajo' : 'Muy bajo', score: analyzed.riskScore }].forEach((r: any) => map.set(r.id, r));
-                          localStorage.setItem('contractsCache', JSON.stringify(Array.from(map.values())));
+                          localStorage.setItem(contractsKey, JSON.stringify(Array.from(map.values())));
                         } catch {}
                       }
                     } catch {}

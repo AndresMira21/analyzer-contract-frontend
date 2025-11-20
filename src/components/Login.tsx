@@ -12,7 +12,6 @@ import { Checkbox } from './ui/checkbox';
 import { LogIn, UserPlus, Home, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { ContractAnimation } from './ContractAnimation';
 import { useAuth } from '../context/AuthContext';
-import { GoogleLoginButton } from './GoogleLoginButton';
 import { AnimationFactory } from '../utils/animationFactory';
 
 interface LoginFormProps {
@@ -22,7 +21,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: LoginFormProps) {
-  const { login, register, loginWithGoogle } = useAuth() as any;
+  const { login, register } = useAuth() as any;
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,18 +38,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
 
   const isRegister = mode === 'register';
 
-  const handleGoogleLogin = async (token: string) => {
-    setBackendError(undefined);
-    setIsLoading(true);
-    try {
-      await loginWithGoogle(token);
-      navigate('/dashboard', { replace: true });
-    } catch (e: any) {
-      setBackendError('Error al autenticarse con Google');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -419,9 +407,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
           )}
         </motion.div>
       </motion.form>
-      <motion.div className="mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
-        <GoogleLoginButton handleGoogleLogin={handleGoogleLogin} />
-      </motion.div>
+      
       <motion.div
         className="text-center mt-4"
         initial={{ opacity: 0 }}

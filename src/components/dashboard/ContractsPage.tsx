@@ -1,6 +1,7 @@
 import type { JSX, ChangeEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { motion } from 'motion/react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -22,6 +23,8 @@ const data: Contract[] = [];
 export default function ContractsPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const contractsKey = user?.email ? `contractsCache:${user.email}` : 'contractsCache:guest';
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [risk, setRisk] = useState('');
@@ -31,6 +34,10 @@ export default function ContractsPage(): JSX.Element {
   const [override, setOverride] = useState<any | null>(null);
   const [rowsState, setRowsState] = useState<Contract[]>(data);
   const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    setRowsState([]);
+  }, [contractsKey]);
 
   useEffect(() => {
     (async () => {
@@ -50,12 +57,12 @@ export default function ContractsPage(): JSX.Element {
             score: Number(item.riskScore ?? 0),
           })) : [];
           setRowsState(() => rows);
-          try { localStorage.setItem('contractsCache', JSON.stringify(rows)); } catch {}
+          try { localStorage.setItem(contractsKey, JSON.stringify(rows)); } catch {}
         }
       } catch {}
     })();
     try {
-      const raw = localStorage.getItem('contractsCache');
+      const raw = localStorage.getItem(contractsKey);
       if (raw) {
         const arr = JSON.parse(raw) as Contract[];
         setRowsState(prev => {
@@ -65,7 +72,7 @@ export default function ContractsPage(): JSX.Element {
         });
       }
     } catch {}
-  }, []);
+  }, [contractsKey]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -125,7 +132,7 @@ export default function ContractsPage(): JSX.Element {
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== 'contractsCache' || e.newValue === null) return;
+      if (e.key !== contractsKey || e.newValue === null) return;
       try {
         const arr = JSON.parse(e.newValue) as Contract[];
         setRowsState(prev => {
@@ -137,7 +144,7 @@ export default function ContractsPage(): JSX.Element {
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [contractsKey]);
 
   const filtered = useMemo(() => {
     let rows = rowsState;
@@ -161,11 +168,11 @@ export default function ContractsPage(): JSX.Element {
         const row = { id: ac.id, name: ac.name, date: ac.uploadedAt, status: ac.status, risk: riskText, score: ac.riskScore } as Contract;
         setRowsState(prev => [...prev, row]);
         try {
-          const raw = localStorage.getItem('contractsCache');
+          const raw = localStorage.getItem(contractsKey);
           const arr = raw ? (JSON.parse(raw) as Contract[]) : [];
           const map = new Map<string, Contract>();
           [...arr, row].forEach(r => map.set(r.id, r));
-          localStorage.setItem('contractsCache', JSON.stringify(Array.from(map.values())));
+          localStorage.setItem(contractsKey, JSON.stringify(Array.from(map.values())));
         } catch {}
       }
       setOverride(ac);
@@ -241,7 +248,7 @@ export default function ContractsPage(): JSX.Element {
                             <td className="px-6 py-4">
           <div className="flex items-center gap-3">
             <Button size="lg" className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={async () => { setSelectedId(row.id); let overrideData: any = null; const envDetails = (process.env.REACT_APP_CONTRACT_DETAILS as string | undefined) || ''; try { const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''; const url = envDetails ? (envDetails.includes(':id') ? envDetails.replace(':id', row.id) : `${envDetails}?id=${encodeURIComponent(row.id)}`) : `${backendUrl}/api/contracts/${row.id}`; const res = await fetch(url, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : undefined }); const data = await res.json(); overrideData = { id: String(data.id ?? row.id), name: String(data.name ?? row.name), uploadedAt: String(data.uploadedAt ?? row.date), status: (data.status as 'En revisión' | 'Aprobado' | 'Riesgo alto') ?? row.status, riskScore: Number(data.riskScore ?? row.score), clauses: Array.isArray(data.keyClauses) ? data.keyClauses.map(String) : Array.isArray(data.clauses) ? data.clauses.map(String) : [], risks: Array.isArray(data.risks) ? data.risks.map(String) : [], recommendations: Array.isArray(data.recommendations) ? data.recommendations.map(String) : [], summary: data.summary ? String(data.summary) : undefined }; } catch {} setOverride(overrideData); setIsModalOpen(true); }}>Ver detalles</Button>
-                                <Button size="lg" variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={() => { const ok = window.confirm('¿Eliminar este contrato?'); if (!ok) return; setRowsState(prev => prev.filter(r => r.id !== row.id)); try { const raw = localStorage.getItem('contractsCache'); const arr = raw ? (JSON.parse(raw) as Contract[]) : []; const next = arr.filter(r => r.id !== row.id); localStorage.setItem('contractsCache', JSON.stringify(next)); } catch {} if (selectedId === row.id) { setIsModalOpen(false); setSelectedId(null); } }}>Eliminar</Button>
+                                <Button size="lg" variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={() => { const ok = window.confirm('¿Eliminar este contrato?'); if (!ok) return; setRowsState(prev => prev.filter(r => r.id !== row.id)); try { const raw = localStorage.getItem(contractsKey); const arr = raw ? (JSON.parse(raw) as Contract[]) : []; const next = arr.filter(r => r.id !== row.id); localStorage.setItem(contractsKey, JSON.stringify(next)); } catch {} if (selectedId === row.id) { setIsModalOpen(false); setSelectedId(null); } }}>Eliminar</Button>
                               </div>
                             </td>
                 </motion.tr>

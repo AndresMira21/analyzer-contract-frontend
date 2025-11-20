@@ -15,7 +15,6 @@ type AuthContextValue = {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (name?: string, email?: string) => Promise<void>;
-  loginWithGoogle: (token: string) => Promise<void>;
 };
 
 const HISTORY_KEY = 'auth:sessions_history';
@@ -111,13 +110,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    if (!(supabaseConfigured && supabase)) throw new Error('Servicio de autenticación no disponible');
-    const redirectTo = (process.env.REACT_APP_EMAIL_REDIRECT_TO as string | undefined) || undefined;
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { name }, emailRedirectTo: redirectTo } });
-    if (error) throw new Error('Registro inválido');
+    const url = backendUrl ? `${backendUrl}/api/auth/register` : '/api/auth/register';
+    let res: Response;
     try {
-      const hashed = await bcrypt.hash(password, 10);
-      await supabase.from(profileTable).upsert({ email, full_name: name, password: hashed, role: 'user' }, { onConflict: 'email' });
+      res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'include', body: JSON.stringify({ fullName: name, email, password }) });
+    } catch {
+      throw new Error('No se pudo conectar con el servidor');
+    }
+    if (!res.ok) throw new Error('Registro inválido');
+    try {
+      if (supabaseConfigured && supabase) {
+        const hashed = await bcrypt.hash(password, 10);
+        await supabase.from(profileTable).upsert({ email, full_name: name, password: hashed, role: 'user' }, { onConflict: 'email' });
+      }
     } catch {}
   }, []);
 
@@ -164,76 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return !!token;
   }, [user]);
 
-  const loginWithGoogle = useCallback(async (token: string) => {
-    let jwt = '';
-    let session: AuthUser = { email: '', name: undefined };
-    const url = backendUrl ? `${backendUrl}/api/auth/google` : '';
-    if (url) {
-      try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ token }), credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          jwt = String(data.token || '');
-          const u = data.user || {};
-          session = { email: String(u.email || ''), name: String(u.fullName || '') || undefined };
-        }
-      } catch {}
-    }
-    if (!session.email) {
-      jwt = jwt || token;
-      try {
-        const parts = token.split('.');
-        if (parts.length >= 2) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-          const em = String(payload.email || '');
-          const full = String(payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim());
-          const nm = full ? full : undefined;
-          session = { email: em, name: nm };
-        }
-      } catch {}
-    }
-    if (!session.email) {
-      const em = window.localStorage.getItem('auth:email') || '';
-      const nm = window.localStorage.getItem('auth:name') || undefined;
-      session = { email: em, name: nm || undefined };
-    }
-    if (!session.email) {
-      throw new Error('Error al autenticarse con Google');
-    }
-    try {
-      window.localStorage.setItem('authToken', jwt || token);
-      window.localStorage.setItem('auth:name', session.name || '');
-      window.localStorage.setItem('auth:email', session.email);
-    } catch {}
-    try {
-      const key = `${HISTORY_PREFIX}${session.email}`;
-      const rawUser = window.localStorage.getItem(key);
-      const rawGlobal = window.localStorage.getItem(HISTORY_KEY);
-      const userArr = rawUser ? (JSON.parse(rawUser) as { email: string; name?: string; ts: string }[]) : [];
-      const globalArr = rawGlobal ? (JSON.parse(rawGlobal) as { email: string; name?: string; ts: string }[]) : [];
-      const base = [...userArr, ...globalArr.filter((h) => h.email === session.email)];
-      const entry = { email: session.email, name: session.name, ts: new Date().toISOString() };
-      const mk = entry.ts.slice(0, 16);
-      const exists = base.some((h) => h.email === entry.email && String(h.ts).slice(0, 16) === mk);
-      const mergedIn = exists ? base : [entry, ...base];
-      const seen = new Set<string>();
-      const deduped: { email: string; name?: string; ts: string }[] = [];
-      for (const h of mergedIn) {
-        const k = `${String(h.email)}:${String(h.ts).slice(0, 16)}`;
-        if (!seen.has(k)) { seen.add(k); deduped.push(h); }
-      }
-      const nextHist = deduped.slice(0, 20);
-      window.localStorage.setItem(key, JSON.stringify(nextHist));
-    } catch {}
-    if (supabaseConfigured && supabase) {
-      try {
-        await supabase.from(profileTable).upsert({ email: session.email, full_name: session.name, role: 'user' }, { onConflict: 'email' });
-      } catch {}
-    }
-    setUser(session);
-  }, []);
 
-  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated, loginWithGoogle }), [user, login, register, logout, updateProfile, isAuthenticated, loginWithGoogle]);
+  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated }), [user, login, register, logout, updateProfile, isAuthenticated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -97,7 +97,7 @@ export default function ContractDetailModal({ isOpen, onClose, contractId, overr
     <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 140, damping: 20 }} className="absolute inset-0 flex items-center justify-center p-6">
-        <div className="w-full max-w-6xl rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-md shadow-2xl">
+        <div className="w-[80vw] max-w-[80vw] max-h-[75vh] rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-md shadow-2xl overflow-hidden flex flex-col">
           <div className="flex items-center justify-between p-6 border-b border-slate-800/60">
             <div>
               <div className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight">{contract.name}</div>
@@ -107,7 +107,7 @@ export default function ContractDetailModal({ isOpen, onClose, contractId, overr
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600/60 scrollbar-track-slate-800/40">
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 rounded-full text-sm" style={{ backgroundColor: statusBg, color: statusColor }}>Estado: {contract.status}</span>
               <span className="px-4 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: riskBg, color: riskColor }}>Puntaje de riesgo: {contract.riskScore}</span>
@@ -140,20 +140,19 @@ export default function ContractDetailModal({ isOpen, onClose, contractId, overr
                 <div className="text-slate-300">{contract.summary ?? 'Sin resumen disponible'}</div>
               </Card>
             </div>
-
-            <div className="flex items-center justify-end gap-3">
-              <Button className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={handleDownload}>
-                <Download className="h-5 w-5 mr-2" />
-                Descargar PDF
-              </Button>
-              <Button variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={() => navigate('/dashboard/ai', { state: { contractId: contract.id, contractName: contract.name } })}>
-                <MessageSquare className="h-5 w-5 mr-2" />
-                Abrir chat sobre este contrato
-              </Button>
-              <Button variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={onClose}>
-                Cerrar
-              </Button>
-            </div>
+          </div>
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-800/60">
+            <Button className="text-white" style={{ backgroundColor: '#3A7BFF' }} onClick={handleDownload}>
+              <Download className="h-5 w-5 mr-2" />
+              Descargar PDF
+            </Button>
+            <Button variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={() => navigate('/dashboard/ai', { state: { contractId: contract.id, contractName: contract.name } })}>
+              <MessageSquare className="h-5 w-5 mr-2" />
+              Abrir chat sobre este contrato
+            </Button>
+            <Button variant="outline" className="text-white" style={{ borderColor: 'rgba(58,123,255,0.28)' }} onClick={onClose}>
+              Cerrar
+            </Button>
           </div>
         </div>
       </motion.div>
