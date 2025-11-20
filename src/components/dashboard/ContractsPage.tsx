@@ -17,11 +17,7 @@ type Contract = {
   score: number;
 };
 
-const data: Contract[] = [
-  { id: '123', name: 'Contrato de Servicios', date: '2025-11-10', status: 'En revisión', risk: 'Bajo', score: 32 },
-  { id: '456', name: 'Contrato de Arrendamiento', date: '2025-11-08', status: 'Aprobado', risk: 'Muy bajo', score: 8 },
-  { id: '789', name: 'Contrato de Confidencialidad', date: '2025-11-06', status: 'Riesgo alto', risk: 'Alto', score: 78 },
-];
+const data: Contract[] = [];
 
 export default function ContractsPage(): JSX.Element {
   const navigate = useNavigate();
@@ -39,8 +35,10 @@ export default function ContractsPage(): JSX.Element {
   useEffect(() => {
     (async () => {
       try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
-        const res = await fetch(`${backendUrl}/api/contracts`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+        if (!apiBase || !token) return;
+        const res = await fetch(`${apiBase}/contracts/user`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const list = await res.json();
           const rows = Array.isArray(list) ? list.map((item: any) => ({
@@ -51,14 +49,8 @@ export default function ContractsPage(): JSX.Element {
             risk: String(item.riskScore >= 80 ? 'Muy alto' : item.riskScore >= 60 ? 'Alto' : item.riskScore >= 40 ? 'Medio' : item.riskScore >= 20 ? 'Bajo' : 'Muy bajo') as Contract['risk'],
             score: Number(item.riskScore ?? 0),
           })) : [];
-          setRowsState((prev) => {
-            const map = new Map<string, Contract>();
-            [...prev, ...rows].forEach(r => map.set(r.id, r));
-            return Array.from(map.values());
-          });
-          try {
-            localStorage.setItem('contractsCache', JSON.stringify(rows));
-          } catch {}
+          setRowsState(() => rows);
+          try { localStorage.setItem('contractsCache', JSON.stringify(rows)); } catch {}
         }
       } catch {}
     })();
@@ -231,7 +223,12 @@ export default function ContractsPage(): JSX.Element {
                   <th className="px-6 py-3">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+          <tbody>
+                        {filtered.length === 0 && (
+                          <tr className="border-t border-slate-800/60">
+                            <td colSpan={6} className="px-6 py-6 text-slate-400 text-center">No tienes contratos aún</td>
+                          </tr>
+                        )}
                         {filtered.map((row, idx) => (
                           <motion.tr key={row.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.35, delay: 0.05 * idx }} className="border-t border-slate-800/60 hover:bg-slate-800/40">
                             <td className="px-6 py-4 text-slate-200">{row.name}</td>

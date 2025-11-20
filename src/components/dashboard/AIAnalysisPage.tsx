@@ -191,7 +191,7 @@ export default function AIAnalysisPage(): JSX.Element {
       }
       setTyping(false);
     })();
-  }, [state.contractId, state.contractName]);
+  }, [state.contractId, state.contractName, backendUrl]);
 
   const send = async (text: string) => {
     if (!text.trim()) return;
@@ -217,12 +217,20 @@ export default function AIAnalysisPage(): JSX.Element {
     try {
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
       const url = state.contractId ? `${backendUrl}/api/chat/${state.contractId}` : `${backendUrl}/api/chat/general`;
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ message: text }) });
-      const data = await res.json();
-      const aiText = String(data.message || '');
-      const msg: ChatMessage = { id: `${Date.now()}-a`, author: 'ai', text: aiText, date: new Date().toISOString(), type: 'answer' };
-      setMessages((prev) => [...prev, msg]);
-      if (!atBottomRef.current) setNewAiCount((c) => c + 1);
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ message: text }), credentials: 'include' });
+      if (!res.ok) {
+        let msgText = `Error del servidor (HTTP ${res.status})`;
+        try { const j = await res.json(); msgText = String(j?.message || j?.error || msgText); } catch { try { msgText = await res.text(); } catch {} }
+        const errMsg: ChatMessage = { id: `${Date.now()}-err`, author: 'ai', text: msgText, date: new Date().toISOString(), type: 'answer' };
+        setMessages((prev) => [...prev, errMsg]);
+        if (!atBottomRef.current) setNewAiCount((c) => c + 1);
+      } else {
+        const data = await res.json();
+        const aiText = String(data.message || data.answer || '');
+        const msg: ChatMessage = { id: `${Date.now()}-a`, author: 'ai', text: aiText, date: new Date().toISOString(), type: 'answer' };
+        setMessages((prev) => [...prev, msg]);
+        if (!atBottomRef.current) setNewAiCount((c) => c + 1);
+      }
     } catch {}
     setTyping(false);
   };
@@ -249,57 +257,67 @@ export default function AIAnalysisPage(): JSX.Element {
   
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight">{title}</h2>
-      <Card className="p-6 backdrop-blur transition-all" style={{ backgroundColor: 'rgba(20,30,60,0.32)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }}>
-        <div className="space-y-4">
-          <div ref={listRef} onScroll={handleScroll} className="relative space-y-3 max-h-[52vh] overflow-y-auto pr-2">
-            {[...messages.filter(m => m.pinned === true), ...messages.filter(m => !m.pinned)].map((m) => {
-              const bubbleClass = m.author === 'user' ? 'bg-slate-800/60 text-slate-200' : 'bg-slate-900/60 text-slate-100';
-              const aiStyle = m.author === 'ai' ? { boxShadow: '0 12px 28px rgba(58,123,255,0.10)', borderColor: 'rgba(58,123,255,0.22)' } : { borderColor: 'rgba(58,123,255,0.18)' };
-              return (
-                <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col">
-                  <div className="text-sm text-slate-400">{m.author === 'user' ? 'Usuario' : 'IA'} • {new Date(m.date).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</div>
-                  {m.author === 'ai' ? (
-                    <motion.div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={aiStyle} initial={{ opacity: 0.6, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
-                  ) : (
-                    <div className={`${bubbleClass} px-4 py-3 rounded-xl border`} style={aiStyle}>{m.text}</div>
-                  )}
-                  <div className="mt-2">
-                    <Button variant="outline" className="text-white" onClick={() => togglePin(m.id)}>{m.pinned ? 'Quitar fijado' : 'Fijar'}</Button>
+    <div className="min-h-[80vh] w-full flex items-center justify-center px-4 md:px-6">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950" />
+      <div className="absolute inset-0 -z-10 opacity-[0.08]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.25) 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+      <div className="w-full max-w-4xl">
+        <div className="sticky top-0 z-10 mb-3 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl px-5 py-4 shadow-lg">
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-slate-100">{title}</h2>
+        </div>
+        <Card className="overflow-hidden border-slate-800" style={{ backgroundColor: 'rgba(20,30,60,0.28)', boxShadow: '0 24px 56px rgba(58,123,255,0.08)', borderRadius: '20px' }}>
+          <div className="flex flex-col">
+            <div ref={listRef} onScroll={handleScroll} className="max-h-[60vh] overflow-y-auto px-6 md:px-7 py-6 space-y-5">
+              {[...messages.filter(m => m.pinned === true), ...messages.filter(m => !m.pinned)].map((m) => {
+                const isUser = m.author === 'user';
+                const bubbleBase = 'max-w-[74%] rounded-2xl px-4 py-3 shadow-sm border leading-relaxed';
+                const userBubble = 'bg-[#1e3a8a] text-white border-blue-700';
+                const aiBubble = 'bg-slate-800/80 text-slate-100 border-slate-700';
+                return (
+                  <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }} className={isUser ? 'flex justify-end' : 'flex justify-start'}>
+                    <div className="space-y-1">
+                      <div className="text-xs text-slate-400">{m.author === 'user' ? 'Usuario' : 'IA'} • {new Date(m.date).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</div>
+                      {m.author === 'ai' ? (
+                        <motion.div className={`${bubbleBase} ${aiBubble}`} initial={{ opacity: 0.85, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
+                      ) : (
+                        <div className={`${bubbleBase} ${userBubble}`}>{m.text}</div>
+                      )}
+                      <div className={isUser ? 'flex justify-end' : 'flex'}>
+                        <Button variant="outline" className="text-slate-200 border-slate-600 hover:bg-slate-700/60 px-3 py-1 h-8 text-xs rounded-full" onClick={() => togglePin(m.id)}>{m.pinned ? 'Quitar fijado' : 'Fijar'}</Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+              {typing && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="flex items-center gap-2 text-slate-400 text-sm">
+                  <span>IA escribiendo</span>
+                  <div className="flex items-center gap-1">
+                    <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2 }} />
+                    <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.2 }} />
+                    <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.4 }} />
                   </div>
                 </motion.div>
-              );
-            })}
-            {typing && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="flex items-center gap-2 text-slate-400 text-sm">
-                <span>IA escribiendo</span>
-                <div className="flex items-center gap-1">
-                  <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2 }} />
-                  <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.2 }} />
-                  <motion.span className="h-2 w-2 rounded-full bg-slate-500" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.4 }} />
+              )}
+              {newAiCount > 0 && (
+                <div className="sticky bottom-2 flex justify-end pr-2">
+                  <Button variant="outline" className="text-slate-200 border-slate-600 hover:bg-slate-700/60 rounded-full text-xs h-8 px-3" onClick={() => { if (listRef.current) { listRef.current.scrollTop = listRef.current.scrollHeight; } setNewAiCount(0); }}>Nuevo(s) {newAiCount}</Button>
                 </div>
-              </motion.div>
-            )}
-            {newAiCount > 0 && (
-              <div className="absolute bottom-2 right-2">
-                <Button variant="outline" className="text-white" onClick={() => { if (listRef.current) { listRef.current.scrollTop = listRef.current.scrollHeight; } setNewAiCount(0); }}>Nuevo(s) {newAiCount}</Button>
+              )}
+            </div>
+            <div className="border-t border-slate-700/60 bg-slate-900/40 px-5 md:px-6 py-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <Input value={input} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)} placeholder="Escribe tu consulta legal" className="flex-1 h-12 rounded-full border-slate-700 bg-slate-800/70 text-white placeholder:text-slate-500 shadow-sm" />
+                <Button className="h-12 px-5 rounded-full bg-blue-600 hover:bg-blue-500 text-white" onClick={() => send(input)}>Enviar</Button>
               </div>
-            )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {suggestions.map((s) => (
+                  <Button key={s} variant="outline" className="rounded-full px-3 py-1 h-8 text-xs text-slate-200 border-slate-600 hover:bg-slate-700/60" onClick={() => send(s)}>{s}</Button>
+                ))}
+              </div>
+            </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            <Input value={input} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)} placeholder="Escribe tu consulta legal" className="flex-1 border-slate-600 bg-slate-800/50 text-white placeholder:text-slate-500 h-12" />
-            <Button className="text-white" onClick={() => send(input)}>Enviar</Button>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {suggestions.map((s) => (
-              <Button key={s} variant="outline" className="text-white" onClick={() => send(s)}>{s}</Button>
-            ))}
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

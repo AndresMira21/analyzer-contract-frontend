@@ -12,6 +12,7 @@ import { Checkbox } from './ui/checkbox';
 import { LogIn, UserPlus, Home, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { ContractAnimation } from './ContractAnimation';
 import { useAuth } from '../context/AuthContext';
+import { GoogleLoginButton } from './GoogleLoginButton';
 import { AnimationFactory } from '../utils/animationFactory';
 
 interface LoginFormProps {
@@ -21,7 +22,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: LoginFormProps) {
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth() as any;
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +38,19 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
   
 
   const isRegister = mode === 'register';
+
+  const handleGoogleLogin = async (token: string) => {
+    setBackendError(undefined);
+    setIsLoading(true);
+    try {
+      await loginWithGoogle(token);
+      navigate('/dashboard', { replace: true });
+    } catch (e: any) {
+      setBackendError('Error al autenticarse con Google');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +132,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
 
 
   return (
-    <motion.div
+    <fmMotion.div
       key={mode}
       // Animación flip card profesional: rotación suave en eje Y
       // La tarjeta gira 0° → 90° (desaparece) → 0° (aparece el nuevo lado)
@@ -143,9 +157,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
         ease: [0.22, 0.61, 0.36, 1] // Cubic bezier elegante para flip suave
       }}
       style={{
-        transformStyle: 'preserve-3d',
-        transformPerspective: 800,
-        backfaceVisibility: 'hidden'
+        perspective: 800
       }}
       className="w-full bg-slate-900/90 backdrop-blur-xl p-16 rounded-2xl shadow-2xl border border-slate-700/50 relative overflow-hidden h-full"
     >
@@ -156,14 +168,12 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
         transition={{ duration: 0.3, delay: 0.2 }}
         className="text-center mb-8 relative z-10"
       >
-        <motion.h2
+        <fmMotion.h2
           className="text-4xl md:text-5xl mb-3 bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent font-extrabold tracking-tight"
-          animate={{ backgroundPosition: ['0%', '100%', '0%'] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-          style={{ backgroundSize: '200% auto' }}
+          transition={{ duration: 0.3 }}
         >
           {isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
-        </motion.h2>
+        </fmMotion.h2>
         <p className="text-slate-400 text-lg tracking-wide">
           {isRegister
             ? 'Únete a LegalConnect y analiza tus contratos'
@@ -409,6 +419,9 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
           )}
         </motion.div>
       </motion.form>
+      <motion.div className="mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+        <GoogleLoginButton handleGoogleLogin={handleGoogleLogin} />
+      </motion.div>
       <motion.div
         className="text-center mt-4"
         initial={{ opacity: 0 }}
@@ -423,7 +436,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
           Volver al inicio
         </button>
       </motion.div>
-    </motion.div>
+    </fmMotion.div>
   );
 }
 

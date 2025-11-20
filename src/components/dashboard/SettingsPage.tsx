@@ -28,15 +28,27 @@ export default function SettingsPage(): JSX.Element {
       }
     } catch {}
     try {
+      const keyUser = user?.email ? `auth:sessions_history:${user.email}` : '';
+      const rawUser = keyUser ? window.localStorage.getItem(keyUser) : null;
       const rawHist = window.localStorage.getItem('auth:sessions_history');
-      if (rawHist) {
-        const hist = JSON.parse(rawHist) as { email: string; name?: string; ts: string }[];
-        setSessions(hist);
+      if (rawUser || rawHist) {
+        const userArr = rawUser ? (JSON.parse(rawUser) as { email: string; name?: string; ts: string }[]) : [];
+        const globalArr = rawHist ? (JSON.parse(rawHist) as { email: string; name?: string; ts: string }[]) : [];
+        const merged = [...userArr, ...globalArr];
+        const mine = user?.email ? merged.filter(h => String(h.email) === String(user.email)) : merged;
+        const seen = new Set<string>();
+        const unique: { email: string; name?: string; ts: string }[] = [];
+        for (const h of mine) {
+          const k = `${String(h.email)}:${String(h.ts).slice(0, 16)}`;
+          if (!seen.has(k)) { seen.add(k); unique.push(h); }
+        }
+        const sorted = [...unique].sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+        setSessions(sorted);
       } else if (user?.email) {
         setSessions([{ email: user.email, name: user.name, ts: new Date().toISOString() }]);
       }
     } catch {}
-  }, [user]);
+  }, [user?.email, user?.name]);
 
   const saveProfile = async () => {
     setSaving(true);

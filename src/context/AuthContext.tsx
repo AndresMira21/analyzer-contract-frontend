@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase, supabaseConfigured, profileTable } from '../lib/supabaseClient';
 import bcrypt from 'bcryptjs';
-const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
 
 type AuthUser = {
   name?: string;
@@ -15,9 +15,11 @@ type AuthContextValue = {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (name?: string, email?: string) => Promise<void>;
+  loginWithGoogle: (token: string) => Promise<void>;
 };
 
 const HISTORY_KEY = 'auth:sessions_history';
+const HISTORY_PREFIX = 'auth:sessions_history:';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -50,8 +52,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string, _rememberMe: boolean = true) => {
     const url = backendUrl ? `${backendUrl}/api/auth/login` : '/api/auth/login';
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-    if (!res.ok) throw new Error('Credenciales inválidas');
+    let res: Response;
+    try {
+      res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'include', body: JSON.stringify({ email, password }) });
+    } catch {
+      throw new Error('No se pudo conectar con el servidor');
+    }
+    if (!res.ok) {
+      let errorBody: any = null;
+      try { errorBody = await res.json(); } catch {}
+      const msg = String(errorBody?.message || errorBody?.error || '');
+      const userExists = errorBody?.userExists;
+      if (res.status === 404 || userExists === false || /no\s+registrado|no\s+existe|not\s+registered|user\s+not\s+found/i.test(msg)) {
+        throw new Error('El usuario no está registrado.');
+      }
+      throw new Error(msg || 'Credenciales inválidas');
+    }
     const data = await res.json();
     const token = String(data.token || '');
     const fullName = String(data.fullName || '');
@@ -66,11 +82,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.sessionStorage.setItem('auth:email', session.email);
     }
     try {
-      const rawHist = window.localStorage.getItem(HISTORY_KEY);
-      const hist = rawHist ? (JSON.parse(rawHist) as { email: string; name?: string; ts: string }[]) : [];
+      const key = `${HISTORY_PREFIX}${session.email}`;
+      const rawUser = window.localStorage.getItem(key);
+      const rawGlobal = window.localStorage.getItem(HISTORY_KEY);
+      const userArr = rawUser ? (JSON.parse(rawUser) as { email: string; name?: string; ts: string }[]) : [];
+      const globalArr = rawGlobal ? (JSON.parse(rawGlobal) as { email: string; name?: string; ts: string }[]) : [];
+      const base = [...userArr, ...globalArr.filter((h) => h.email === session.email)];
       const entry = { email: session.email, name: session.name, ts: new Date().toISOString() };
-      const nextHist = [entry, ...hist].slice(0, 10);
-      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHist));
+      const mk = entry.ts.slice(0, 16);
+      const exists = base.some((h) => h.email === entry.email && String(h.ts).slice(0, 16) === mk);
+      const mergedIn = exists ? base : [entry, ...base];
+      const seen = new Set<string>();
+      const deduped: { email: string; name?: string; ts: string }[] = [];
+      for (const h of mergedIn) {
+        const k = `${String(h.email)}:${String(h.ts).slice(0, 16)}`;
+        if (!seen.has(k)) { seen.add(k); deduped.push(h); }
+      }
+      const nextHist = deduped.slice(0, 20);
+      window.localStorage.setItem(key, JSON.stringify(nextHist));
     } catch {}
     if (supabaseConfigured && supabase) {
       try {
@@ -82,17 +111,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const url = backendUrl ? `${backendUrl}/api/auth/register` : '/api/auth/register';
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName: name, email, password }) });
-    if (!res.ok) throw new Error('Registro inválido');
-    if (supabaseConfigured && supabase) {
-      try {
-        const redirectTo = (process.env.REACT_APP_EMAIL_REDIRECT_TO as string | undefined) || undefined;
-        await supabase.auth.signUp({ email, password, options: { data: { name }, emailRedirectTo: redirectTo } });
-        const hashed = await bcrypt.hash(password, 10);
-        await supabase.from(profileTable).upsert({ email, full_name: name, password: hashed, role: 'user' }, { onConflict: 'email' });
-      } catch {}
-    }
+    if (!(supabaseConfigured && supabase)) throw new Error('Servicio de autenticación no disponible');
+    const redirectTo = (process.env.REACT_APP_EMAIL_REDIRECT_TO as string | undefined) || undefined;
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { name }, emailRedirectTo: redirectTo } });
+    if (error) throw new Error('Registro inválido');
+    try {
+      const hashed = await bcrypt.hash(password, 10);
+      await supabase.from(profileTable).upsert({ email, full_name: name, password: hashed, role: 'user' }, { onConflict: 'email' });
+    } catch {}
   }, []);
 
   const logout = useCallback(async () => {
@@ -113,11 +139,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
     try {
-      const rawHist = window.localStorage.getItem(HISTORY_KEY);
-      const hist = rawHist ? (JSON.parse(rawHist) as { email: string; name?: string; ts: string }[]) : [];
-      const entry = { email: next.email, name: next.name, ts: new Date().toISOString() };
-      const nextHist = [entry, ...hist].slice(0, 10);
-      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHist));
+      const key = `${HISTORY_PREFIX}${next.email}`;
+      const rawUser = window.localStorage.getItem(key);
+      const rawGlobal = window.localStorage.getItem(HISTORY_KEY);
+      const userArr = rawUser ? (JSON.parse(rawUser) as { email: string; name?: string; ts: string }[]) : [];
+      const globalArr = rawGlobal ? (JSON.parse(rawGlobal) as { email: string; name?: string; ts: string }[]) : [];
+      const base = [...userArr, ...globalArr.filter((h) => h.email === next.email)];
+      const updated = base.map((h) => h.email === next.email ? { ...h, name: next.name } : h);
+      const seen = new Set<string>();
+      const deduped: { email: string; name?: string; ts: string }[] = [];
+      for (const h of updated) {
+        const k = `${String(h.email)}:${String(h.ts).slice(0, 16)}`;
+        if (!seen.has(k)) { seen.add(k); deduped.push(h); }
+      }
+      const trimmed = deduped.slice(0, 20);
+      window.localStorage.setItem(key, JSON.stringify(trimmed));
     } catch {}
     setUser(next);
   }, [user]);
@@ -128,7 +164,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return !!token;
   }, [user]);
 
-  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated }), [user, login, register, logout, updateProfile, isAuthenticated]);
+  const loginWithGoogle = useCallback(async (token: string) => {
+    let jwt = '';
+    let session: AuthUser = { email: '', name: undefined };
+    const url = backendUrl ? `${backendUrl}/api/auth/google` : '';
+    if (url) {
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ token }), credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          jwt = String(data.token || '');
+          const u = data.user || {};
+          session = { email: String(u.email || ''), name: String(u.fullName || '') || undefined };
+        }
+      } catch {}
+    }
+    if (!session.email) {
+      jwt = jwt || token;
+      try {
+        const parts = token.split('.');
+        if (parts.length >= 2) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+          const em = String(payload.email || '');
+          const full = String(payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim());
+          const nm = full ? full : undefined;
+          session = { email: em, name: nm };
+        }
+      } catch {}
+    }
+    if (!session.email) {
+      const em = window.localStorage.getItem('auth:email') || '';
+      const nm = window.localStorage.getItem('auth:name') || undefined;
+      session = { email: em, name: nm || undefined };
+    }
+    if (!session.email) {
+      throw new Error('Error al autenticarse con Google');
+    }
+    try {
+      window.localStorage.setItem('authToken', jwt || token);
+      window.localStorage.setItem('auth:name', session.name || '');
+      window.localStorage.setItem('auth:email', session.email);
+    } catch {}
+    try {
+      const key = `${HISTORY_PREFIX}${session.email}`;
+      const rawUser = window.localStorage.getItem(key);
+      const rawGlobal = window.localStorage.getItem(HISTORY_KEY);
+      const userArr = rawUser ? (JSON.parse(rawUser) as { email: string; name?: string; ts: string }[]) : [];
+      const globalArr = rawGlobal ? (JSON.parse(rawGlobal) as { email: string; name?: string; ts: string }[]) : [];
+      const base = [...userArr, ...globalArr.filter((h) => h.email === session.email)];
+      const entry = { email: session.email, name: session.name, ts: new Date().toISOString() };
+      const mk = entry.ts.slice(0, 16);
+      const exists = base.some((h) => h.email === entry.email && String(h.ts).slice(0, 16) === mk);
+      const mergedIn = exists ? base : [entry, ...base];
+      const seen = new Set<string>();
+      const deduped: { email: string; name?: string; ts: string }[] = [];
+      for (const h of mergedIn) {
+        const k = `${String(h.email)}:${String(h.ts).slice(0, 16)}`;
+        if (!seen.has(k)) { seen.add(k); deduped.push(h); }
+      }
+      const nextHist = deduped.slice(0, 20);
+      window.localStorage.setItem(key, JSON.stringify(nextHist));
+    } catch {}
+    if (supabaseConfigured && supabase) {
+      try {
+        await supabase.from(profileTable).upsert({ email: session.email, full_name: session.name, role: 'user' }, { onConflict: 'email' });
+      } catch {}
+    }
+    setUser(session);
+  }, []);
+
+  const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated, loginWithGoogle }), [user, login, register, logout, updateProfile, isAuthenticated, loginWithGoogle]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

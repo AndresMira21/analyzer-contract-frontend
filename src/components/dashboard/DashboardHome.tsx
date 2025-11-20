@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
+import { motion as fmMotion } from 'framer-motion';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import Lottie from 'lottie-react';
@@ -20,16 +21,13 @@ export default function DashboardHome(): JSX.Element {
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [isAnalyzeOpen, setIsAnalyzeOpen] = useState<boolean>(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; type: string; size: number; contractName?: string }[]>([]);
-  const [contractsCount, setContractsCount] = useState<number>(124);
+  const [contractsCount, setContractsCount] = useState<number>(0);
   const stats = [
     { icon: FileText, title: 'Contratos analizados', value: contractsCount },
   ];
 
-  const [activity, setActivity] = useState<{ id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string }[]>([
-    { id: 'EV-001', title: 'Contrato de Servicios revisado', ts: 'Hace 5 min', type: 'ok', contractId: '123' },
-    { id: 'EV-002', title: 'Riesgo alto detectado', ts: 'Hace 1 h', type: 'warn', contractId: '789' },
-    { id: 'EV-003', title: 'Nuevo comentario del cliente', ts: 'Ayer', type: 'note' },
-  ]);
+  const [activity, setActivity] = useState<{ id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string }[]>([]);
+  const activityKey = `${user?.email ? `user:${user.email}` : 'user:guest'}:activity`;
 
   const tsToMillis = (ts: string) => {
     if (!ts) return 0;
@@ -126,6 +124,14 @@ export default function DashboardHome(): JSX.Element {
   }, []);
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(activityKey);
+      const arr = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(arr)) setActivity(arr);
+    } catch {}
+  }, [activityKey]);
+
+  useEffect(() => {
     const sseUrl = (process.env.REACT_APP_CONTRACTS_COUNT_SSE as string | undefined) || '';
     const wsUrl = (process.env.REACT_APP_CONTRACTS_COUNT_WS as string | undefined) || '';
     let es: EventSource | null = null;
@@ -185,7 +191,11 @@ export default function DashboardHome(): JSX.Element {
             const data = JSON.parse(e.data);
             const item = parseActivityEvent(data);
             if (!item || !active || !isMountedRef.current) return;
-            setActivity((prev) => upsertActivity(prev, item));
+            setActivity((prev) => {
+              const next = upsertActivity(prev, item);
+              try { window.localStorage.setItem(activityKey, JSON.stringify(next)); } catch {}
+              return next;
+            });
           } catch {}
         };
       } catch {}
@@ -197,7 +207,11 @@ export default function DashboardHome(): JSX.Element {
             const data = JSON.parse(ev.data as string);
             const item = parseActivityEvent(data);
             if (!item || !active || !isMountedRef.current) return;
-            setActivity((prev) => upsertActivity(prev, item));
+            setActivity((prev) => {
+              const next = upsertActivity(prev, item);
+              try { window.localStorage.setItem(activityKey, JSON.stringify(next)); } catch {}
+              return next;
+            });
           } catch {}
         };
       } catch {}
@@ -217,15 +231,14 @@ export default function DashboardHome(): JSX.Element {
   return (
     <div className="space-y-10">
       <motion.div initial={{ opacity: 0, y: 8, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5 }}>
-        <motion.h1
+        <fmMotion.h1
           className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight"
-          style={{ backgroundSize: '200% auto' }}
           initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)', backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-          transition={{ duration: 0.8, backgroundPosition: { duration: 8, repeat: Infinity, ease: 'linear' } }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.8 }}
         >
           Hola, {name} 👋
-        </motion.h1>
+        </fmMotion.h1>
         <motion.div
           className="h-1 w-16 mt-2 bg-gradient-to-r from-blue-500 via-slate-400 to-blue-500 rounded-full"
           animate={{ opacity: [0.6, 1, 0.6] }}
@@ -234,23 +247,23 @@ export default function DashboardHome(): JSX.Element {
         
         <div className="relative min-h-[68vh] flex flex-col items-center justify-center pt-6">
           <div className="relative">
-            <motion.span
+            <fmMotion.span
               className="absolute inset-0 -z-10 rounded-2xl"
-              style={{ background: 'radial-gradient(220px 120px at 50% 50%, rgba(58,123,255,0.22), rgba(58,123,255,0))' }}
               initial={{ opacity: 0.6, scale: 0.98 }}
               animate={{ opacity: [0.6, 0.25, 0.6], scale: [0.98, 1.02, 0.98] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.h2
+            >
+              <div className="absolute inset-0 rounded-2xl" style={{ background: 'radial-gradient(220px 120px at 50% 50%, rgba(58,123,255,0.22), rgba(58,123,255,0))' }} />
+            </fmMotion.span>
+            <fmMotion.h2
               className="text-5xl md:text-6xl bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent mb-4 tracking-tight font-bold leading-tight"
-              style={{ backgroundSize: '200% auto' }}
               initial={{ opacity: 0, y: 8, filter: 'blur(2px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)', backgroundPosition: ['0%', '100%', '0%'] }}
-              transition={{ duration: 0.8, backgroundPosition: { duration: 8, repeat: Infinity, ease: 'linear' } }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.8 }}
               whileHover={{ scale: 1.02 }}
             >
               Bienvenid@ a LegalConnect
-            </motion.h2>
+            </fmMotion.h2>
             <motion.div
               className="h-1 w-24 mx-auto bg-gradient-to-r from-blue-500 via-slate-400 to-blue-500 rounded-full"
               animate={{ opacity: [0.6, 1, 0.6] }}
@@ -264,26 +277,29 @@ export default function DashboardHome(): JSX.Element {
           </div>
           <div className="flex items-center justify-center gap-5 flex-wrap max-w-[1100px] mx-auto">
             <div className="flex items-center bg-white/5 rounded-2xl border px-10 h-[84px] w-full sm:w-[600px] md:w-[800px] lg:w-[1000px] max-w-full" style={{ borderColor: 'rgba(58,123,255,0.28)' }}>
-              <motion.div
+              <fmMotion.div
                 className="w-full text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight"
-                style={{ backgroundSize: '200% auto' }}
-                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
                 whileHover={{ scale: 1.02, y: -2 }}
               >
                 Selecciona tu contrato
-              </motion.div>
+              </fmMotion.div>
             </div>
             <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.98 }}>
-            <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(14,165,233,0.35) 0%, rgba(34,211,238,0.65) 50%, rgba(14,165,233,0.35) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, x: [ -24, 24 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
+            <fmMotion.span className="absolute inset-0 -z-10 rounded-2xl" initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, x: [ -24, 24 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }}>
+              <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(14,165,233,0.35) 0%, rgba(34,211,238,0.65) 50%, rgba(14,165,233,0.35) 100%)' }} />
+            </fmMotion.span>
               <Button className="text-white h-[84px] px-10 text-3xl" style={{ background: 'linear-gradient(90deg, #0EA5E9 0%, #22D3EE 100%)', boxShadow: '0 14px 34px rgba(34,211,238,0.3)', filter: 'brightness(1.06)' }} onClick={() => setIsUploadOpen(true)}>Subir contrato</Button>
             </motion.div>
             <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} whileHover={{ y: -2, scale: 1.04 }} whileTap={{ scale: 0.98 }}>
-              <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(54,90,223,0.22) 0%, rgba(79,140,255,0.44) 50%, rgba(54,90,223,0.22) 100%)' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.75, x: [ -22, 22 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }} />
+              <fmMotion.span className="absolute inset-0 -z-10 rounded-2xl" initial={{ opacity: 0 }} whileHover={{ opacity: 0.75, x: [ -22, 22 ] }} transition={{ duration: 1.2, repeat: Infinity, repeatType: 'reverse' }}>
+                <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(90deg, rgba(54,90,223,0.22) 0%, rgba(79,140,255,0.44) 50%, rgba(54,90,223,0.22) 100%)' }} />
+              </fmMotion.span>
               <Button variant="outline" className="text-white h-[84px] px-10 text-3xl" style={{ borderColor: '#4F8CFF', boxShadow: '0 12px 30px rgba(79,140,255,0.22)', background: 'linear-gradient(90deg, rgba(20,30,60,0.35) 0%, rgba(20,30,60,0.25) 100%)' }} onClick={() => setIsAnalyzeOpen(true)}>Analizar contrato</Button>
             </motion.div>
             <motion.div className="relative" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} whileHover={{ y: -2, scale: 1.06 }} whileTap={{ scale: 0.98 }}>
-              <motion.span className="absolute inset-0 -z-10 rounded-2xl" style={{ background: 'radial-gradient(120px 120px at 50% 50%, rgba(79,140,255,0.5), rgba(79,140,255,0))' }} initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, scale: 1.1 }} transition={{ duration: 0.8 }} />
+              <fmMotion.span className="absolute inset-0 -z-10 rounded-2xl" initial={{ opacity: 0 }} whileHover={{ opacity: 0.85, scale: 1.1 }} transition={{ duration: 0.8 }}>
+                <div className="absolute inset-0 rounded-2xl" style={{ background: 'radial-gradient(120px 120px at 50% 50%, rgba(79,140,255,0.5), rgba(79,140,255,0))' }} />
+              </fmMotion.span>
               <Link to="/dashboard/ai" className="flex items-center justify-center h-[84px] w-[84px] rounded-2xl" style={{ backgroundColor: 'rgba(79,140,255,0.18)', boxShadow: '0 12px 30px rgba(79,140,255,0.2)' }}>
                 <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 8 }} transition={{ type: 'spring', stiffness: 180, damping: 12 }}>
                   <ChevronRight className="h-9 w-9" color="#3A7BFF" />
@@ -316,13 +332,11 @@ export default function DashboardHome(): JSX.Element {
 
       <motion.div initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5 }}>
         <Card className="p-7 max-w-5xl mx-auto" style={{ backgroundColor: 'rgba(20,30,60,0.32)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }}>
-          <motion.h2
+          <fmMotion.h2
             className="text-3xl md:text-4xl bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight font-bold"
-            animate={{ backgroundPosition: ['0%', '100%', '0%'] }}
-            style={{ backgroundSize: '200% auto' }}
           >
             Actividad reciente
-          </motion.h2>
+          </fmMotion.h2>
           <div className="mt-4 space-y-4">
             {activity.map((ev, idx) => (
               <motion.div key={ev.id} className="flex items-center justify-between gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * idx, duration: 0.4 }} whileHover={{ y: -2 }}>
@@ -340,7 +354,7 @@ export default function DashboardHome(): JSX.Element {
         </Card>
       </motion.div>
 
-      <UploadContractModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUploaded={(file) => { setUploadedFiles(prev => [...prev, file]); setActivity(prev => [{ id: `EV-${Date.now()}`, title: `Contrato subido: ${file.contractName || file.name}`, ts: 'Hace 1 min', type: 'note' }, ...prev]); navigate('/dashboard/contracts'); }} />
+      <UploadContractModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUploaded={(file) => { setUploadedFiles(prev => [...prev, file]); setActivity(prev => { const ev: { id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string } = { id: `EV-${Date.now()}`, title: `Contrato subido: ${file.contractName || file.name}`, ts: new Date().toISOString(), type: 'note' }; const next = [ev, ...prev]; try { window.localStorage.setItem(activityKey, JSON.stringify(next)); } catch {} return next; }); navigate('/dashboard/contracts'); }} />
       <AnalyzeTextModal
         isOpen={isAnalyzeOpen}
         onClose={() => setIsAnalyzeOpen(false)}
@@ -394,7 +408,7 @@ export default function DashboardHome(): JSX.Element {
             [...arr, row].forEach((r: any) => map.set(r.id, r));
             localStorage.setItem('contractsCache', JSON.stringify(Array.from(map.values())));
           } catch {}
-          setActivity(prev => [{ id: `EV-${Date.now() + 1}`, title: `Contrato analizado: ${analyzed!.name}`, ts: new Date().toISOString(), type: 'ok', contractId: analyzed!.id }, ...prev]);
+          setActivity(prev => { const ev: { id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string } = { id: `EV-${Date.now() + 1}`, title: `Contrato analizado: ${analyzed!.name}`, ts: new Date().toISOString(), type: 'ok', contractId: analyzed!.id }; return [ev, ...prev]; });
           setContractsCount((prev) => prev + 1);
           navigate('/dashboard/contracts', { state: { analyzedContract: analyzed } });
           setUploadedFiles(prev => {
@@ -411,7 +425,7 @@ export default function DashboardHome(): JSX.Element {
             if (next.length === 0) setIsAnalyzeOpen(false);
             return next;
           });
-          setActivity(prev => [{ id: `EV-${Date.now() + 2}`, title: `Archivo eliminado: ${file.contractName || file.name}`, ts: 'Hace 1 min', type: 'note' }, ...prev]);
+          setActivity(prev => { const ev: { id: string; title: string; ts: string; type: 'ok' | 'warn' | 'note'; contractId?: string } = { id: `EV-${Date.now() + 2}`, title: `Archivo eliminado: ${file.contractName || file.name}`, ts: 'Hace 1 min', type: 'note' }; return [ev, ...prev]; });
         }}
       />
     </div>
