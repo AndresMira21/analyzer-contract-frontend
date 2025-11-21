@@ -8,6 +8,7 @@ import { ProfessionalBackground } from "./components/ProfessionalBackground.jsx"
 import { ContractAnimation } from "./components/ContractAnimation";
 import { AnimationFactory } from "./utils/animationFactory";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 type Screen = "home" | "login" | "register" | "dashboard";
 
@@ -15,9 +16,15 @@ function App(): JSX.Element | null {
   const [screen, setScreen] = useState<Screen>("home");
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const path = location.pathname.toLowerCase();
+    const authed = isAuthenticated();
+    if (authed && (path === "/" || path === "/login" || path === "/register")) {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
     if (path === "/login") {
       setScreen("login");
       return;
@@ -31,7 +38,7 @@ function App(): JSX.Element | null {
       return;
     }
     setScreen("home");
-  }, [location.pathname]);
+  }, [location.pathname, isAuthenticated, navigate]);
 
   if (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/contracts')) {
     return null;

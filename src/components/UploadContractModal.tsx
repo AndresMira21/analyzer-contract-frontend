@@ -6,6 +6,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import Input from './ui/input';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 
 type UploadedInfo = { name: string; type: string; size: number; contractName?: string };
@@ -26,8 +27,10 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
   const [success, setSuccess] = useState('');
   const [fileError, setFileError] = useState('');
   const [result, setResult] = useState<{ type: string; clauses: string[]; risks: string[]; riskScore: number; recommendations: string[]; summary: string } | null>(null);
+  const [createdChat, setCreatedChat] = useState<{ id: string; contractId?: string; title?: string } | null>(null);
   const { user } = useAuth();
   const contractsKey = user?.email ? `contractsCache:${user.email}` : 'contractsCache:guest';
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -102,6 +105,9 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                 const uploadUrl = apiBase || (fallbackBase ? `${fallbackBase}/api/contracts/upload` : '');
                 try {
                   if (!uploadUrl) { throw new Error('Endpoint de subida no configurado'); }
+                  let firstConvId: string | null = null;
+                  let firstContractId: string | null = null;
+                  let firstTitle: string | null = null;
                   for (const f of selectedFiles) {
                     const fd = new FormData();
                     fd.append('file', f);
@@ -124,6 +130,20 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                         const map = new Map<string, any>();
                         [...arr, { id: localAnalyzed.id, name: localAnalyzed.name, date: localAnalyzed.uploadedAt, status: localAnalyzed.status, risk: localAnalyzed.riskScore >= 80 ? 'Muy alto' : localAnalyzed.riskScore >= 60 ? 'Alto' : localAnalyzed.riskScore >= 40 ? 'Medio' : localAnalyzed.riskScore >= 20 ? 'Bajo' : 'Muy bajo', score: localAnalyzed.riskScore }].forEach((r: any) => map.set(r.id, r));
                         localStorage.setItem(contractsKey, JSON.stringify(Array.from(map.values())));
+                        try {
+                          const backendUrl = (process.env.REACT_APP_BACKEND_URL as string | undefined) || '';
+                          const token2 = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+                          const createUrl = backendUrl ? `${backendUrl}/api/chats` : '';
+                          const chatTitle = localAnalyzed.name;
+                          if (createUrl) {
+                            const resCreate = await fetch(createUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token2 ? { Authorization: `Bearer ${token2}` } : {}) }, credentials: 'include', body: JSON.stringify({ title: chatTitle, date: new Date().toISOString(), contractId: localAnalyzed.id }) });
+                            if (resCreate.ok) {
+                              const created = await resCreate.json();
+                              const convId = String(created.id || created._id || '');
+                              if (!firstConvId && convId) { firstConvId = convId; firstContractId = localAnalyzed.id; firstTitle = chatTitle; }
+                            }
+                          }
+                        } catch {}
                       } catch {}
                       continue;
                     }
@@ -186,6 +206,20 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                           const map = new Map<string, any>();
                           [...arr, { id: analyzed.id, name: analyzed.name, date: analyzed.uploadedAt, status: analyzed.status, risk: analyzed.riskScore >= 80 ? 'Muy alto' : analyzed.riskScore >= 60 ? 'Alto' : analyzed.riskScore >= 40 ? 'Medio' : analyzed.riskScore >= 20 ? 'Bajo' : 'Muy bajo', score: analyzed.riskScore }].forEach((r: any) => map.set(r.id, r));
                           localStorage.setItem(contractsKey, JSON.stringify(Array.from(map.values())));
+                          try {
+                            const backendUrl = (process.env.REACT_APP_BACKEND_URL as string | undefined) || '';
+                            const token2 = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+                            const createUrl = backendUrl ? `${backendUrl}/api/chats` : '';
+                            const chatTitle = analyzed.name;
+                            if (createUrl) {
+                              const resCreate = await fetch(createUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token2 ? { Authorization: `Bearer ${token2}` } : {}) }, credentials: 'include', body: JSON.stringify({ title: chatTitle, date: new Date().toISOString(), contractId: analyzed.id }) });
+                              if (resCreate.ok) {
+                                const created = await resCreate.json();
+                                const convId = String(created.id || created._id || '');
+                                if (!firstConvId && convId) { firstConvId = convId; firstContractId = analyzed.id; firstTitle = chatTitle; }
+                              }
+                            }
+                          } catch {}
                         } catch {}
                       }
                     } catch {}
@@ -195,7 +229,10 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                   setSuccess('Contrato subido correctamente');
                   setSelectedFiles([]);
                   setFileName('');
-                  setTimeout(() => { onClose(); }, 600);
+                  if (firstConvId) {
+                    setCreatedChat({ id: firstConvId, contractId: firstContractId ?? undefined, title: firstTitle ?? undefined });
+                  }
+                  
                 } catch (e: any) {
                   const m = String(e?.message || '').trim();
                   setError(m ? m : 'Error de conexión con el servidor');
@@ -243,6 +280,11 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                     <div className="text-white font-semibold mb-2">Resumen</div>
                     <div className="text-slate-300">{result.summary}</div>
                   </div>
+                </div>
+                <div className="mt-4 flex items-center justify-end gap-3">
+                  {createdChat?.id && (
+                    <Button className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white" onClick={() => navigate('/dashboard/ai', { state: { contractName: createdChat.title ?? '', contractId: createdChat.contractId ?? undefined, conversationId: createdChat.id } })}>Abrir chat</Button>
+                  )}
                 </div>
               </Card>
             )}

@@ -18,7 +18,8 @@ export default function DashboardLayout(): JSX.Element {
 
   const handleLogout = () => {
     logout();
-    navigate('/', { replace: true });
+    navigate('/login', { replace: true });
+    try { window.history.pushState(null, '', '/login'); } catch {}
   };
 
   useEffect(() => {
@@ -48,7 +49,11 @@ export default function DashboardLayout(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    const onPop = () => { navigate('/dashboard', { replace: true }); };
+    try { window.history.pushState(null, '', window.location.href); } catch {}
+    const onPop = () => {
+      navigate('/dashboard', { replace: true });
+      try { window.history.pushState(null, '', '/dashboard'); } catch {}
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [navigate]);
