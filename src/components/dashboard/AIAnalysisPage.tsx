@@ -326,11 +326,16 @@ export default function AIAnalysisPage(): JSX.Element {
 
   const send = async (text: string) => {
     if (!text.trim()) return;
+    const makeTitle = (t: string): string => {
+      const cleaned = t.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
+      return cleaned.slice(0, 80);
+    };
+    const newTitle = makeTitle(text);
     // Si no hay conversación seleccionada, crear una nueva usando la primera pregunta como título
     if (!currentChatId) {
       try {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
-        const title = text.trim().replace(/\s+/g, ' ').slice(0, 80);
+        const title = newTitle;
         const urlCreate = `${backendUrl}/api/chats`;
         const body = { title, date: new Date().toISOString(), contractId: state.contractId ?? undefined };
         const resCreate = await fetch(urlCreate, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include', body: JSON.stringify(body) });
@@ -341,6 +346,18 @@ export default function AIAnalysisPage(): JSX.Element {
           setChats((prev) => [item, ...prev]);
           setCurrentChatId(convId);
           setCurrentChatTitle(title);
+        }
+      } catch {}
+    }
+    // Actualizar el título de la conversación con el texto de la pregunta
+    if (currentChatId) {
+      try {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+        const urlPatch = `${backendUrl}/api/chats/${encodeURIComponent(currentChatId)}`;
+        const resPatch = await fetch(urlPatch, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include', body: JSON.stringify({ title: newTitle }) });
+        if (resPatch.ok) {
+          setCurrentChatTitle(newTitle);
+          setChats((prev) => prev.map((c) => (c.id === currentChatId ? { ...c, title: newTitle } : c)));
         }
       } catch {}
     }
