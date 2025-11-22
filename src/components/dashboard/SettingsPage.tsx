@@ -4,29 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import Input from '../ui/input';
-import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { useAuth } from '../../context/AuthContext';
-
-type NotifPrefs = { inApp: boolean; push: boolean };
 
 export default function SettingsPage(): JSX.Element {
   const { user, updateProfile } = useAuth();
   const [name, setName] = useState<string>(user?.name ?? '');
-  const [email, setEmail] = useState<string>(user?.email ?? '');
   const [saving, setSaving] = useState(false);
-  const [prefs, setPrefs] = useState<NotifPrefs>({ inApp: true, push: false });
   const [sessions, setSessions] = useState<{ email: string; name?: string; ts: string }[]>([]);
   const cardStyle = useMemo(() => ({ backgroundColor: 'rgba(20,30,60,0.32)', borderColor: 'rgba(58,123,255,0.24)', boxShadow: '0 18px 40px rgba(58,123,255,0.10)', borderRadius: '16px' }), []);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem('user:prefs:notifications');
-      if (raw) {
-        const p = JSON.parse(raw) as Partial<NotifPrefs & { email?: boolean }>;
-        setPrefs({ inApp: !!p.inApp, push: !!p.push });
-      }
-    } catch {}
     try {
       const keyUser = user?.email ? `auth:sessions_history:${user.email}` : '';
       const rawUser = keyUser ? window.localStorage.getItem(keyUser) : null;
@@ -53,43 +41,39 @@ export default function SettingsPage(): JSX.Element {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      updateProfile(name, email);
+      const sanitizeName = (s: string) => {
+        const trimmedStart = s.replace(/^\s+/, '');
+        const onlyLettersSpaces = trimmedStart.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ ]+/g, '');
+        const noDouble = onlyLettersSpaces.replace(/ {2,}/g, ' ');
+        return noDouble.slice(0, 15);
+      };
+      const cleanName = sanitizeName(name);
+      setName(cleanName);
+      updateProfile(cleanName, undefined);
     } finally {
       setSaving(false);
     }
   };
 
-  const savePrefs = (next: Partial<NotifPrefs>) => {
-    const merged = { ...prefs, ...next };
-    setPrefs(merged);
-    try {
-      window.localStorage.setItem('user:prefs:notifications', JSON.stringify(merged));
-    } catch {}
-    const updateUrl = (process.env.REACT_APP_NOTIF_PREFS_UPDATE as string | undefined) || '';
-    if (updateUrl) {
-      try {
-        fetch(updateUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(merged), credentials: 'include' });
-      } catch {}
-    }
-  };
+  
 
   useEffect(() => {
     const profileUpdateUrl = (process.env.REACT_APP_PROFILE_UPDATE as string | undefined) || '';
     const handler = window.setTimeout(() => {
       if (profileUpdateUrl) {
         try {
-          fetch(profileUpdateUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email }), credentials: 'include' })
-            .then(() => updateProfile(name, email))
-            .catch(() => updateProfile(name, email));
+          fetch(profileUpdateUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }), credentials: 'include' })
+            .then(() => updateProfile(name, undefined))
+            .catch(() => updateProfile(name, undefined));
         } catch {
-          updateProfile(name, email);
+          updateProfile(name, undefined);
         }
       } else {
-        updateProfile(name, email);
+        updateProfile(name, undefined);
       }
     }, 600);
     return () => window.clearTimeout(handler);
-  }, [name, email, updateProfile]);
+  }, [name, updateProfile]);
 
   return (
     <div className="space-y-8">
@@ -98,12 +82,15 @@ export default function SettingsPage(): JSX.Element {
       <Card className="p-6 backdrop-blur transition-all" style={cardStyle}>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <Label htmlFor="name">Nombre</Label>
-            <Input id="name" value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} placeholder="Tu nombre" className="bg-slate-800/50 text-white placeholder:text-slate-500" />
-          </div>
-          <div className="space-y-3">
-            <Label htmlFor="email">Correo</Label>
-            <Input id="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} placeholder="tu@email.com" className="bg-slate-800/50 text-white placeholder:text-slate-500" />
+            <Label htmlFor="name">¿Cómo quieres que te llamemos?</Label>
+            <Input id="name" value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const v = e.target.value;
+              const trimmedStart = v.replace(/^\s+/, '');
+              const onlyLettersSpaces = trimmedStart.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ ]+/g, '');
+              const noDouble = onlyLettersSpaces.replace(/ {2,}/g, ' ');
+              const limited = noDouble.slice(0, 15);
+              setName(limited);
+            }} placeholder="Tu nombre" className="bg-slate-800/50 text-white placeholder:text-slate-500" />
           </div>
         </div>
         <div className="mt-6 flex items-center gap-3">
@@ -111,19 +98,7 @@ export default function SettingsPage(): JSX.Element {
         </div>
       </Card>
 
-      <Card className="p-6 backdrop-blur transition-all" style={cardStyle}>
-        <div className="space-y-4">
-          <div className="text-slate-300 font-semibold">Preferencias de notificaciones</div>
-          <div className="flex items-center gap-3">
-            <Checkbox id="notif-inapp" checked={prefs.inApp} onCheckedChange={(v: boolean) => savePrefs({ inApp: !!v })} />
-            <Label htmlFor="notif-inapp">Notificaciones dentro de la app</Label>
-          </div>
-          <div className="flex items-center gap-3">
-            <Checkbox id="notif-push" checked={prefs.push} onCheckedChange={(v: boolean) => savePrefs({ push: !!v })} />
-            <Label htmlFor="notif-push">Notificaciones push</Label>
-          </div>
-        </div>
-      </Card>
+      
 
       <Card className="p-6 backdrop-blur transition-all" style={cardStyle}>
         <div className="space-y-4">

@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
+import Lottie from 'lottie-react';
+import loadingAnimation from '../assets/animations/Loading Files (1).json';
 
 type UploadedInfo = { name: string; type: string; size: number; contractName?: string };
 type AnalyzeTextModalProps = {
@@ -21,15 +23,12 @@ export default function AnalyzeTextModal({ isOpen, onClose, files = [], onAnalyz
 
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (selectedIndex !== null && selectedIndex >= files.length) {
@@ -41,7 +40,7 @@ export default function AnalyzeTextModal({ isOpen, onClose, files = [], onAnalyz
 
   return (
     <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <motion.div initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }} className="absolute inset-0 flex items-center justify-center p-6">
         <div className="w-full max-w-3xl rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-md shadow-2xl">
           <div className="flex items-center justify-between p-6 border-b border-slate-800/60">
@@ -90,6 +89,18 @@ export default function AnalyzeTextModal({ isOpen, onClose, files = [], onAnalyz
           </div>
         </div>
       </motion.div>
+      {analyzing && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md">
+          <div className="absolute inset-0 flex items-center justify-center p-6">
+            <div className="flex flex-col items-center">
+              <div className="w-[480px] max-w-[86vw]">
+                <Lottie animationData={loadingAnimation} loop autoplay />
+              </div>
+              <div className="mt-4 text-slate-200 text-lg">Tu contrato está siendo analizado, por favor espera…</div>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

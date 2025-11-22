@@ -20,7 +20,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "craco start",
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=3000; try { Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 0 } | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } } catch {}; craco start\"",
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject"

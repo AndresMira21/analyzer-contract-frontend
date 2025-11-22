@@ -51,17 +51,29 @@ export default function DashboardLayout(): JSX.Element {
   useEffect(() => {
     try { window.history.pushState(null, '', window.location.href); } catch {}
     const onPop = () => {
-      navigate('/dashboard', { replace: true });
-      try { window.history.pushState(null, '', '/dashboard'); } catch {}
+      if (user && user.email) {
+        navigate('/dashboard', { replace: true });
+        try { window.history.pushState(null, '', '/dashboard'); } catch {}
+      } else {
+        navigate('/login', { replace: true });
+        try { window.history.pushState(null, '', '/login'); } catch {}
+      }
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [navigate]);
+  }, [navigate, user]);
+
+  useEffect(() => {
+    if (!user || !user.email) {
+      navigate('/login', { replace: true });
+      try { window.history.pushState(null, '', '/login'); } catch {}
+    }
+  }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-blue-950 text-white relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-blue-950 text-white relative overflow-x-hidden">
       <ProfessionalBackground />
-      <div className="flex h-screen relative z-10">
+      <div className="flex flex-col md:flex-row h-screen relative z-10">
         <AnimatePresence>
           {!(jsonReady && minDelayPassed) && (
             <motion.div
@@ -89,9 +101,9 @@ export default function DashboardLayout(): JSX.Element {
           onToggleCollapsed={() => setCollapsed((v) => !v)}
           onItemSelected={() => setCollapsed(true)}
         />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           <DashboardNavbar userName={user?.name ?? 'Usuario'} />
-          <main className="flex-1 overflow-y-auto p-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <Outlet />
           </main>
         </div>

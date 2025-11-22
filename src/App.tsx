@@ -21,7 +21,7 @@ function App(): JSX.Element | null {
   useEffect(() => {
     const path = location.pathname.toLowerCase();
     const authed = isAuthenticated();
-    if (authed && (path === "/" || path === "/login" || path === "/register")) {
+    if (authed && (path === "/login" || path === "/register")) {
       navigate("/dashboard", { replace: true });
       return;
     }

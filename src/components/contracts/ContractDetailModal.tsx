@@ -97,7 +97,7 @@ export default function ContractDetailModal({ isOpen, onClose, contractId, overr
     <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 140, damping: 20 }} className="absolute inset-0 flex items-center justify-center p-6">
-        <div className="w-[80vw] max-w-[80vw] max-h-[75vh] rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-md shadow-2xl overflow-hidden flex flex-col">
+        <div className="w-[95vw] sm:w-[85vw] max-w-[95vw] sm:max-w-[85vw] max-h-[80vh] rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-md shadow-2xl overflow-hidden flex flex-col">
           <div className="flex items-center justify-between p-6 border-b border-slate-800/60">
             <div>
               <div className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight">{contract.name}</div>

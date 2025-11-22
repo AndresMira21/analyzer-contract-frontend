@@ -13,6 +13,7 @@ import { LogIn, UserPlus, Home, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { ContractAnimation } from './ContractAnimation';
 import { useAuth } from '../context/AuthContext';
 import { AnimationFactory } from '../utils/animationFactory';
+import bcrypt from 'bcryptjs';
 
 interface LoginFormProps {
   mode?: 'login' | 'register';
@@ -38,18 +39,27 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
 
   const isRegister = mode === 'register';
 
+  const stripAll = (s: string) => s.replace(/\s+/g, '');
+  const sanitizeEmail = (s: string) => s.replace(/\s+/g, '');
+  const sanitizePassword = (s: string) => stripAll(s).slice(0, 15);
+  const sanitizeRegisterName = (s: string) => {
+    const trimmed = s.replace(/^\s+/, '');
+    const lettersSpaces = trimmed.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ ]+/g, '');
+    const noDouble = lettersSpaces.replace(/ {2,}/g, ' ');
+    return noDouble.slice(0, 15);
+  };
+
   
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextErrors: { name?: string; email?: string; password?: string; confirmPassword?: string } = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const stripAll = (s: string) => s.replace(/\s+/g, '');
     const clean = {
-      name: (name),
-      email: stripAll(email),
-      password: stripAll(password),
-      confirm: stripAll(confirmPassword),
+      name: sanitizeRegisterName(name),
+      email: sanitizeEmail(email),
+      password: sanitizePassword(password),
+      confirm: sanitizePassword(confirmPassword),
     };
 
     if (!clean.email) {
@@ -57,7 +67,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     } else if (!emailRegex.test(clean.email)) {
       nextErrors.email = 'Formato de correo inválido';
     }
-    if (email !== clean.email) {
+    if (email.trim() !== clean.email) {
       nextErrors.email = nextErrors.email ?? 'El correo no puede contener espacios';
     }
 
@@ -83,7 +93,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
         nextErrors.confirmPassword = 'Las contraseñas no coinciden';
       }
       if (name !== clean.name) {
-        nextErrors.name = nextErrors.name ?? 'El nombre no puede contener espacios';
+        nextErrors.name = nextErrors.name ?? 'Nombre inválido';
       }
       if (confirmPassword !== clean.confirm) {
         nextErrors.confirmPassword = nextErrors.confirmPassword ?? 'La confirmación no puede contener espacios';
@@ -96,6 +106,11 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
     setBackendError(undefined);
     setIsLoading(true);
     try {
+      const passwordList: string[] = [];
+      passwordList.push(clean.password);
+      const rawPassword = passwordList[0] || '';
+      const encryptedPassword = bcrypt.hashSync(rawPassword, 10);
+      passwordList.length = 0;
       if (isRegister) {
         await register(clean.name, clean.email, clean.password);
         if (onRegisterSuccess) onRegisterSuccess();
@@ -186,7 +201,7 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             transition={{ duration: 0.2, delay: 0.3 }}
           >
           <Label htmlFor="name" className="text-slate-300 text-base font-medium tracking-wide">
-            Nombre completo
+            ¿Cómo quieres que te llamemos?
           </Label>
           <Input
             id="name"
@@ -194,7 +209,8 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
             placeholder="Tu nombre"
             value={name}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setName(e.target.value);
+              const v = sanitizeRegisterName(e.target.value);
+              setName(v);
               setErrors((prev) => ({ ...prev, name: undefined }));
               setBackendError(undefined);
             }}
@@ -223,10 +239,21 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
               type="email"
               placeholder="tu@ejemplo.com"
               value={email}
+              maxLength={50}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                setEmail(e.target.value);
+                const v = sanitizeEmail(e.target.value);
+                setEmail(v);
                 setErrors((prev) => ({ ...prev, email: undefined }));
                 setBackendError(undefined);
+              }}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === ' ') e.preventDefault();
+              }}
+              onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text');
+                const v = sanitizeEmail(text).slice(0, 50);
+                setEmail(v);
               }}
               required
               autoComplete="email"
@@ -255,7 +282,8 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
               placeholder="••••••••"
               value={password}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                setPassword(e.target.value);
+                const v = sanitizePassword(e.target.value);
+                setPassword(v);
                 setErrors((prev) => ({ ...prev, password: undefined }));
                 setBackendError(undefined);
               }}
@@ -290,7 +318,8 @@ export function LoginForm({ mode = 'login', onModeChange, onRegisterSuccess }: L
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setConfirmPassword(e.target.value);
+                  const v = sanitizePassword(e.target.value);
+                  setConfirmPassword(v);
                   setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
                   setBackendError(undefined);
                 }}

@@ -7,6 +7,9 @@ import { Button } from './ui/button';
 import Input from './ui/input';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import Lottie from 'lottie-react';
+import loadingAnimation from '../assets/animations/Loading Files (1).json';
+import ContractDetailModal from './contracts/ContractDetailModal';
 
 
 type UploadedInfo = { name: string; type: string; size: number; contractName?: string };
@@ -28,29 +31,29 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
   const [fileError, setFileError] = useState('');
   const [result, setResult] = useState<{ type: string; clauses: string[]; risks: string[]; riskScore: number; recommendations: string[]; summary: string } | null>(null);
   const [createdChat, setCreatedChat] = useState<{ id: string; contractId?: string; title?: string } | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [detailsOverride, setDetailsOverride] = useState<any | null>(null);
   const { user } = useAuth();
   const contractsKey = user?.email ? `contractsCache:${user.email}` : 'contractsCache:guest';
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
     <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <motion.div initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }} className="absolute inset-0 flex items-center justify-center p-6">
-        <div className="w-full max-w-2xl rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-md shadow-2xl">
+        <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-md shadow-2xl">
           <div className="flex items-center justify-between p-6 border-b border-slate-800/60">
             <div className="text-2xl font-extrabold bg-gradient-to-r from-blue-400 via-slate-300 to-blue-500 bg-clip-text text-transparent tracking-tight">Subir contrato</div>
             <button onClick={onClose} className="h-10 w-10 rounded-xl bg-slate-800/60 border border-slate-700/60 hover:bg-slate-700/60 text-white flex items-center justify-center">
@@ -86,7 +89,13 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                 </div>
                 <div className="space-y-2">
                   <div className="text-white text-sm">Nombre del contrato (opcional)</div>
-                  <Input placeholder="Escribe el nombre" value={contractName} onChange={(e: ChangeEvent<HTMLInputElement>) => setContractName(e.target.value)} />
+                  <Input placeholder="Escribe el nombre" value={contractName} onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    const v = e.target.value;
+                    const trimmedStart = v.replace(/^\s+/, '');
+                    const noDouble = trimmedStart.replace(/ {2,}/g, ' ');
+                    const limited = noDouble.slice(0, 60);
+                    setContractName(limited);
+                  }} />
                 </div>
               </div>
             </Card>
@@ -108,6 +117,7 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                   let firstConvId: string | null = null;
                   let firstContractId: string | null = null;
                   let firstTitle: string | null = null;
+                  let firstAnalyzed: any | null = null;
                   for (const f of selectedFiles) {
                     const fd = new FormData();
                     fd.append('file', f);
@@ -124,6 +134,7 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                         recommendations: ['Definir métricas de desempeño', 'Agregar cláusula de resolución de disputas'],
                         summary: 'Análisis inicial automático basado en el documento subido.'
                       };
+                      if (!firstAnalyzed) firstAnalyzed = localAnalyzed;
                       try {
                         const raw = localStorage.getItem(contractsKey);
                         const arr = raw ? JSON.parse(raw) : [];
@@ -173,6 +184,7 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                           recommendations: ['Definir métricas de desempeño', 'Agregar cláusula de resolución de disputas'],
                           summary: 'Análisis inicial automático basado en el documento subido.'
                         };
+                        if (!firstAnalyzed) firstAnalyzed = localAnalyzed;
                         try {
                           const raw = localStorage.getItem(contractsKey);
                           const arr = raw ? JSON.parse(raw) : [];
@@ -200,6 +212,7 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                         summary: analysis.summary ? String(analysis.summary) : undefined,
                       } : null;
                       if (analyzed) {
+                        if (!firstAnalyzed) firstAnalyzed = analyzed;
                         try {
                           const raw = localStorage.getItem(contractsKey);
                           const arr = raw ? JSON.parse(raw) : [];
@@ -231,6 +244,11 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
                   setFileName('');
                   if (firstConvId) {
                     setCreatedChat({ id: firstConvId, contractId: firstContractId ?? undefined, title: firstTitle ?? undefined });
+                  }
+                  if (firstAnalyzed) {
+                    setDetailsOverride(firstAnalyzed);
+                    setDetailsId(firstAnalyzed.id);
+                    setDetailsOpen(true);
                   }
                   
                 } catch (e: any) {
@@ -291,6 +309,19 @@ export default function UploadContractModal({ isOpen, onClose, onUploaded }: Upl
           </div>
         </div>
       </motion.div>
+      {uploading && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md">
+          <div className="absolute inset-0 flex items-center justify-center p-6">
+            <div className="flex flex-col items-center">
+              <div className="w-[480px] max-w-[86vw]">
+                <Lottie animationData={loadingAnimation} loop autoplay />
+              </div>
+              <div className="mt-4 text-slate-200 text-lg">Tu contrato está siendo analizado, por favor espera…</div>
+            </div>
+          </div>
+        </div>
+      )}
+      <ContractDetailModal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} contractId={detailsId ?? ''} override={detailsOverride ?? undefined} />
     </motion.div>
   );
 }

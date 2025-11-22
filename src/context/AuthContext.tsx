@@ -31,19 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const name = window.localStorage.getItem('auth:name') || undefined;
         const email = window.localStorage.getItem('auth:email') || '';
-        const token = window.localStorage.getItem('authToken') || window.sessionStorage.getItem('authToken') || '';
+        const lToken = window.localStorage.getItem('authToken') || '';
+        const sToken = window.sessionStorage.getItem('authToken') || '';
+        const token = lToken || sToken;
         if (token && email) {
           setUser({ email, name });
           return;
         }
-        if (supabaseConfigured && supabase) {
-          const { data } = await supabase.auth.getUser();
-          const u = data.user;
-          if (u && active) {
-            const nm = (u.user_metadata as any)?.name as string | undefined;
-            setUser({ email: u.email || '', name: nm });
+        try { if (lToken && !email) window.localStorage.removeItem('authToken'); } catch {}
+        try { if (sToken && !email) window.sessionStorage.removeItem('authToken'); } catch {}
+        try {
+          const ck = document.cookie || '';
+          if (/(^|;\s*)authToken=/.test(ck)) {
+            document.cookie = 'authToken=; Max-Age=0; path=/';
           }
-        }
+        } catch {}
       } catch {}
     })();
     return () => { active = false; };
@@ -128,7 +130,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try { if (supabaseConfigured && supabase) await supabase.auth.signOut(); } catch {}
-    try { window.localStorage.removeItem('authToken'); window.sessionStorage.removeItem('authToken'); window.localStorage.removeItem('auth:name'); window.localStorage.removeItem('auth:email'); window.sessionStorage.removeItem('auth:name'); window.sessionStorage.removeItem('auth:email'); } catch {}
+    try {
+      const keys: string[] = [];
+      const email = window.localStorage.getItem('auth:email') || window.sessionStorage.getItem('auth:email') || '';
+      keys.push('authToken', 'auth:name', 'auth:email');
+      keys.push(`${HISTORY_PREFIX}${email}`, HISTORY_KEY);
+      if (email) keys.push(`contractsCache:${email}`);
+      for (const k of keys) { try { window.localStorage.removeItem(k); } catch {} try { window.sessionStorage.removeItem(k); } catch {} }
+      try { const ck = document.cookie || ''; if (/(^|;\s*)authToken=/.test(ck)) { document.cookie = 'authToken=; Max-Age=0; path=/'; } } catch {}
+    } catch {}
     setUser(null);
   }, []);
 
@@ -164,10 +174,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const isAuthenticated = useCallback(() => {
-    if (user) return true;
     const token = window.localStorage.getItem('authToken') || window.sessionStorage.getItem('authToken');
     return !!token;
-  }, [user]);
+  }, []);
 
 
   const value = useMemo<AuthContextValue>(() => ({ user, login, register, logout, updateProfile, isAuthenticated }), [user, login, register, logout, updateProfile, isAuthenticated]);

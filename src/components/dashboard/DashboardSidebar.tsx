@@ -21,7 +21,7 @@ export default function DashboardSidebar({ userName, userEmail, onLogout, collap
   const activeBase = 'text-white';
 
   return (
-    <aside className="border-r backdrop-blur-xl flex flex-col h-full" style={{ backgroundColor: 'rgba(20,30,60,0.28)', borderColor: 'rgba(58, 123, 255, 0.18)', width: collapsed ? 80 : 288, transition: 'width 220ms ease' }}>
+    <aside className="hidden md:flex border-r backdrop-blur-xl flex-col h-full" style={{ backgroundColor: 'rgba(20,30,60,0.28)', borderColor: 'rgba(58, 123, 255, 0.18)', width: collapsed ? 80 : 288, transition: 'width 220ms ease' }}>
       <div className="px-4 py-4 space-y-4" style={{ borderBottom: '1px solid rgba(58,123,255,0.18)', backgroundColor: 'rgba(20,30,60,0.22)' }}>
         <div className="flex items-center gap-3">
           <button aria-label="Abrir menú" onClick={onToggleCollapsed} className="p-2 rounded-lg hover:bg-slate-800 transition-colors" title={collapsed ? 'Expandir' : 'Plegar'}>
